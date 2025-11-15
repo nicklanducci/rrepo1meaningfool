@@ -2,37 +2,40 @@
 <html lang="it">
 <head>
   <meta charset="utf-8" />
-  <title>Vertical Live Text x4 • Test Locale</title>
+  <title>Vertical Test x3 • Template Background</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
-    html, body { height: 100%; margin: 0; background:#000; color:#fff; overflow:hidden; }
-    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; }
+    html, body {
+      height: 100%;
+      margin: 0;
+      background: #000;
+      color: #fff;
+      overflow: hidden;
+    }
+    body {
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+    }
 
-    /* layer principale */
+    /* Stage = full screen, with background template */
     .stage {
-      position: fixed; inset: 0;
-      display: flex; justify-content: center; align-items: center;
-      border: 2px solid #444; /* bordo per vedere l’area stage */
-      box-sizing: border-box;
+      position: fixed;
+      inset: 0;
+      background: url("rearprojectiontemplate.jpg") center center / cover no-repeat;
     }
 
-    .columns {
-      display: flex; align-items: center; justify-content: center; gap: 6vw;
-      border: 1px dashed #666; /* bordo per vedere il contenitore colonne */
-      padding: 1rem;
-      box-sizing: border-box;
-    }
-
+    /* Each viewport will be absolutely positioned over a blue bar
+       (coordinates derived from the 1920x1080 template). */
     .viewport {
-      height: 90vh; width: min(16vw, 220px);
-      overflow: hidden; position: relative;
-      display: flex; justify-content: center; background:#000;
-      border: 1px solid #888;  /* bordo per vedere il riquadro colonna */
-      box-sizing: border-box;
+      position: absolute;
+      overflow: hidden;
+      display: flex;
+      justify-content: center;
+      align-items: flex-end; /* testo appoggiato in basso */
+      /* DEBUG: per vedere i bordi, decommenta la riga sotto */
+      /* border: 1px solid rgba(255,255,255,0.4); */
     }
-    .viewport.mode-left  { align-items: flex-end; }   /* testo appoggiato in basso */
-    .viewport.mode-spine { align-items: flex-start; } /* testo appoggiato in alto */
 
+    /* Vertical line of text */
     .line {
       writing-mode: vertical-rl;
       white-space: nowrap;
@@ -42,78 +45,95 @@
       will-change: transform;
       user-select: none;
     }
-    .line.left  { text-orientation: mixed;    transform: rotate(180deg) translateY(0); }
-    .line.spine { text-orientation: sideways; transform: translateY(0); }
 
+    /* bottom-up (rotate 180°) */
+    .line.left {
+      text-orientation: mixed;
+      transform: rotate(180deg) translateY(0);
+    }
+
+    /* cursor inline alla fine del testo */
     .cursor {
-      display:inline-block; width:1ch; text-align:center;
+      display: inline-block;
+      width: 1ch;
+      text-align: center;
       animation: blink 1s step-end infinite;
     }
-    .cursor::after { content:"▌"; }
-    @keyframes blink { 50% { opacity:0; } }
+    .cursor::after { content: "▌"; }
 
-    .controls {
-      position: fixed; left: 0; right: 0; bottom: 10px;
-      display: flex; gap: .5rem; justify-content: center;
-      font-family: inherit;
-    }
-    button {
-      background:#111; color:#fff; border:1px solid #333; border-radius:.5rem;
-      padding:.6rem .8rem; font-size:16px;
-      cursor:pointer;
-    }
+    @keyframes blink { 50% { opacity: 0; } }
   </style>
 </head>
 <body>
   <div class="stage">
-    <div class="columns">
-      <div class="viewport mode-left"  id="viewport1">
-        <div class="line left"  id="line1">
-          <span id="text1"></span><span class="cursor" id="cursor1"></span>
-        </div>
+    <!-- Colonna 1: x=308, y=78, w=317, h=935 su 1920x1080 -->
+    <div
+      class="viewport"
+      id="viewport1"
+      style="
+        left:16.0417%;
+        top:7.2222%;
+        width:16.5104%;
+        height:86.5741%;
+      "
+    >
+      <div class="line left" id="line1">
+        <span id="text1"></span><span class="cursor" id="cursor1"></span>
       </div>
-      <div class="viewport mode-spine" id="viewport2">
-        <div class="line spine" id="line2">
-          <span id="text2"></span><span class="cursor" id="cursor2"></span>
-        </div>
+    </div>
+
+    <!-- Colonna 2: x=939, y=44, w=265, h=935 -->
+    <div
+      class="viewport"
+      id="viewport2"
+      style="
+        left:48.9063%;
+        top:4.0741%;
+        width:13.8021%;
+        height:86.5741%;
+      "
+    >
+      <div class="line left" id="line2">
+        <span id="text2"></span><span class="cursor" id="cursor2"></span>
       </div>
-      <div class="viewport mode-left"  id="viewport3">
-        <div class="line left"  id="line3">
-          <span id="text3"></span><span class="cursor" id="cursor3"></span>
-        </div>
-      </div>
-      <div class="viewport mode-spine" id="viewport4">
-        <div class="line spine" id="line4">
-          <span id="text4"></span><span class="cursor" id="cursor4"></span>
-        </div>
+    </div>
+
+    <!-- Colonna 3: x=1468, y=41, w=322, h=935 -->
+    <div
+      class="viewport"
+      id="viewport3"
+      style="
+        left:76.4583%;
+        top:3.7963%;
+        width:16.7708%;
+        height:86.5741%;
+      "
+    >
+      <div class="line left" id="line3">
+        <span id="text3"></span><span class="cursor" id="cursor3"></span>
       </div>
     </div>
   </div>
 
-  <div class="controls">
-    <button id="restart">Restart animation</button>
-  </div>
-
   <script>
-    // ========= TEST SENTENCE (locale, niente API) =========
+    // ===== TEST SENTENCE (no API) =====
     const SAMPLE = "The sculpture exists only when unseen.";
 
-    // ========= TYPING SPEED (uguale per tutte le colonne) =========
-    const CHAR_MS   = 170;   // per carattere
+    // ===== TYPING SPEED =====
+    const CHAR_MS   = 170;   // base per carattere
     const SPACE_MS  = 280;   // dopo spazio
-    const COMMA_MS  = 520;   // dopo virgola
+    const COMMA_MS  = 520;   // dopo , ;
     const PERIOD_MS = 1000;  // dopo . ! ? …
     const DASH_MS   = 650;   // dopo – — -
     const REDUCED_MOTION = matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-    // ========= SCROLL =========
-    const LEFT_BOTTOM_ROOM_PX = 140;    // margine sotto il cursore per le colonne left
-    const SPINE_TOP_ROOM_PX   = 140;    // margine sopra per spine
-    const LERP_BASE           = 0.06;
-    const LERP_BOOST          = 0.10;
-    const LAG_THRESHOLD       = 36;
+    // ===== SCROLL (morbido, costante) =====
+    const BOTTOM_ROOM_PX = 180;  // spazio sotto il cursore
+    const LERP_BASE      = 0.06;
+    const LERP_BOOST     = 0.10;
+    const LAG_THRESHOLD  = 36;
 
-    function delayFor(ch){
+    function delayFor(ch) {
       if (ch === " ") return CHAR_MS + SPACE_MS;
       if (/[,\u061B;]/.test(ch)) return CHAR_MS + COMMA_MS;
       if (/[.!?]/.test(ch))      return CHAR_MS + PERIOD_MS;
@@ -122,7 +142,7 @@
       return CHAR_MS;
     }
 
-    function setupTestColumn({ mode, viewportId, lineId, textId }) {
+    function setupColumn(viewportId, lineId, textId) {
       const viewport = document.getElementById(viewportId);
       const line     = document.getElementById(lineId);
       const textSpan = document.getElementById(textId);
@@ -135,26 +155,15 @@
       function computeTargetY() {
         const contentH = line.scrollHeight;
         const viewH    = viewport.clientHeight;
-        if (mode === "left") {
-          const allowedH = Math.max(0, viewH - LEFT_BOTTOM_ROOM_PX);
-          const excess   = contentH - allowedH;
-          targetY = excess > 0 ? -excess : 0;
-        } else {
-          const allowedH = Math.max(0, viewH - SPINE_TOP_ROOM_PX);
-          const excess   = contentH - allowedH;
-          targetY = excess > 0 ? -excess : 0;
-        }
+        const allowedH = Math.max(0, viewH - BOTTOM_ROOM_PX);
+        const excess   = contentH - allowedH;
+        targetY = excess > 0 ? -excess : 0;
       }
 
       function applyTransform() {
-        if (mode === "left") {
-          line.style.transform = `rotate(180deg) translateY(${currentY}px)`;
-        } else {
-          line.style.transform = `translateY(${currentY}px)`;
-        }
+        line.style.transform = `rotate(180deg) translateY(${currentY}px)`;
       }
 
-      // scroll morbido costante
       (function animateScroll() {
         requestAnimationFrame(animateScroll);
         if (REDUCED_MOTION) {
@@ -181,32 +190,20 @@
           computeTargetY();
           setTimeout(typeNext, delayFor(ch));
         }
-        setTimeout(typeNext, 600); // piccolo delay iniziale
+        setTimeout(typeNext, 800);
       }
 
-      // avvia subito
       startTyping();
-
       return { restart: startTyping };
     }
 
-    const col1 = setupTestColumn({ mode:"left",  viewportId:"viewport1", lineId:"line1", textId:"text1" });
-    const col2 = setupTestColumn({ mode:"spine", viewportId:"viewport2", lineId:"line2", textId:"text2" });
-    const col3 = setupTestColumn({ mode:"left",  viewportId:"viewport3", lineId:"line3", textId:"text3" });
-    const col4 = setupTestColumn({ mode:"spine", viewportId:"viewport4", lineId:"line4", textId:"text4" });
+    const col1 = setupColumn("viewport1", "line1", "text1");
+    const col2 = setupColumn("viewport2", "line2", "text2");
+    const col3 = setupColumn("viewport3", "line3", "text3");
 
-    // Bottone per riavviare l’animazione in tutte le colonne
-    document.getElementById("restart").addEventListener("click", () => {
-      col1.restart();
-      col2.restart();
-      col3.restart();
-      col4.restart();
-    });
-
-    // Adatta lo scroll se cambia la dimensione della finestra
-    addEventListener("resize", () => {
-      // non ricalcoliamo qui il target, perché viene fatto a ogni lettera;
-      // ma per sicurezza forziamo un leggero realineamento
+    // (se vuoi aggiungere un bottone per restart, puoi usare col1.restart(), col2.restart(), col3.restart())
+    window.addEventListener("resize", () => {
+      // il targetY viene ricalcolato man mano che scrive; qui non serve altro.
     });
   </script>
 </body>
