@@ -2,7 +2,7 @@
 <html lang="it">
 <head>
   <meta charset="utf-8" />
-  <title>Vertical x3 • Template Background Test</title>
+  <title>Vertical x3 • Template Background Test (Scrolling)</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
     html, body {
@@ -16,54 +16,52 @@
       font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
     }
 
-    /* Sfondo full-screen con il template 1920x1080 */
+    /* Full-screen background with the 1920x1080 template */
     .stage {
       position: fixed;
       inset: 0;
       background: url("rearprojectiontemplate.jpg") center center / cover no-repeat;
     }
 
-    /* Ogni viewport coincide con un rettangolo blu del template.
-       Posizioni in % calcolate da 1920x1080. */
+    /* Each viewport sits on top of one blue rectangle (coordinates from 1920x1080) */
     .viewport {
       position: absolute;
       overflow: hidden;
       display: flex;
-      justify-content: center; /* centra orizzontalmente il testo nella barra */
-      /* border: 1px solid rgba(255,255,255,0.5);  <-- scommenta per debug bordi */
+      justify-content: center;   /* horizontal centering inside the bar */
+      align-items: flex-end;     /* start from bottom; we scroll upward */
       box-sizing: border-box;
+      /* uncomment to debug bounding boxes:
+      border: 1px solid rgba(255,255,255,0.4);
+      */
     }
 
-    /* Colonne laterali: testo appoggiato in basso (bottom-up) */
-    .viewport.mode-left  { align-items: flex-end; }
-
-    /* Colonna centrale: testo centrato verticalmente */
-    .viewport.mode-spine { align-items: center; }
-
-    /* Linea di testo verticale */
-    .line {
+    /* left/right columns: bottom-up rotated text */
+    .line.left {
       writing-mode: vertical-rl;
+      text-orientation: mixed;
       white-space: nowrap;
       line-height: 1.09;
       font-size: clamp(28px, 6vw, 120px);
       transform-origin: center;
+      transform: rotate(180deg) translateY(0);
       will-change: transform;
       user-select: none;
     }
 
-    /* Colonne 1 e 3: bottom-up (ruotate) */
-    .line.left {
-      text-orientation: mixed;
-      transform: rotate(180deg);
-    }
-
-    /* Colonna centrale: spine, testo che “leggi girando il libro” */
+    /* middle column: spine orientation, bottom-aligned but sideways text */
     .line.spine {
+      writing-mode: vertical-rl;
       text-orientation: sideways;
-      transform: none; /* niente rotazione */
+      white-space: nowrap;
+      line-height: 1.09;
+      font-size: clamp(28px, 6vw, 120px);
+      transform-origin: center;
+      transform: translateY(0);
+      will-change: transform;
+      user-select: none;
     }
 
-    /* Cursore inline alla fine del testo */
     .cursor {
       display:inline-block;
       width:1ch;
@@ -77,9 +75,9 @@
 </head>
 <body>
   <div class="stage">
-    <!-- Colonna 1: x=308, y=78, w=317, h=935 -->
+    <!-- Column 1: x=308, y=78, w=317, h=935 on 1920x1080 -->
     <div
-      class="viewport mode-left"
+      class="viewport"
       id="viewport1"
       style="
         left:16.0417%;
@@ -93,9 +91,9 @@
       </div>
     </div>
 
-    <!-- Colonna centrale (spine): x=939, y=44, w=265, h=935 -->
+    <!-- Middle column (spine): x=939, y=44, w=265, h=935 -->
     <div
-      class="viewport mode-spine"
+      class="viewport"
       id="viewport2"
       style="
         left:48.9063%;
@@ -109,9 +107,9 @@
       </div>
     </div>
 
-    <!-- Colonna 3: x=1468, y=41, w=322, h=935 -->
+    <!-- Column 3: x=1468, y=41, w=322, h=935 -->
     <div
-      class="viewport mode-left"
+      class="viewport"
       id="viewport3"
       style="
         left:76.4583%;
@@ -127,10 +125,10 @@
   </div>
 
   <script>
-    // ===== FRASE DI TEST (loop, nessuna API) =====
+    // ===== TEXT (loop, no API) =====
     const SAMPLE = "The sculpture exists only when unseen.";
 
-    // ===== TYPING SPEED (uguale a prima, lenta e leggibile) =====
+    // ===== TYPING SPEED (same as before: slow & readable) =====
     const CHAR_MS   = 170;
     const SPACE_MS  = 280;
     const COMMA_MS  = 520;
@@ -146,39 +144,86 @@
       return CHAR_MS;
     }
 
-    // Setup generico di una colonna (solo typing + loop, nessuno scroll complicato)
-    function setupColumn(textId) {
+    // ===== SCROLL SETTINGS (same for all columns) =====
+    const BOTTOM_ROOM_PX = 160;  // space reserved under the cursor
+    const LERP_BASE      = 0.06;
+    const LERP_BOOST     = 0.10;
+    const LAG_THRESHOLD  = 36;
+    const REDUCED_MOTION = matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+    function setupColumn({ mode, viewportId, lineId, textId }) {
+      const viewport = document.getElementById(viewportId);
+      const line     = document.getElementById(lineId);
       const textSpan = document.getElementById(textId);
+
       const chars = Array.from(SAMPLE);
+
+      let targetY = 0;
+      let currentY = 0;
+
+      function computeTargetY() {
+        const contentH = line.scrollHeight;
+        const viewH    = viewport.clientHeight;
+        const allowedH = Math.max(0, viewH - BOTTOM_ROOM_PX);
+        const excess   = contentH - allowedH;
+        targetY = excess > 0 ? -excess : 0;
+      }
+
+      function applyTransform() {
+        if (mode === "left") {
+          line.style.transform = `rotate(180deg) translateY(${currentY}px)`;
+        } else {
+          // spine: bottom-aligned, sideways, but scrolls up the same way
+          line.style.transform = `translateY(${currentY}px)`;
+        }
+      }
+
+      // smooth scrolling loop per column
+      (function animateScroll() {
+        requestAnimationFrame(animateScroll);
+        if (REDUCED_MOTION) {
+          currentY = targetY;
+        } else {
+          const lag  = targetY - currentY;
+          const ease = Math.abs(lag) > LAG_THRESHOLD ? LERP_BOOST : LERP_BASE;
+          currentY += lag * ease;
+        }
+        applyTransform();
+      })();
 
       function startLoop() {
         textSpan.textContent = "";
+        targetY = 0;
+        currentY = 0;
+        applyTransform();
+
         let i = 0;
 
         function typeNext() {
           if (i >= chars.length) {
-            // una volta finita la frase, piccolo delay e ricomincia
+            // phrase finished → short pause, then loop again
             setTimeout(startLoop, 1200);
             return;
           }
           const ch = chars[i++];
           textSpan.textContent += (ch === "\n") ? " " : ch;
+          computeTargetY();
           setTimeout(typeNext, delayFor(ch));
         }
 
-        setTimeout(typeNext, 600); // piccolo ritardo prima di iniziare
+        setTimeout(typeNext, 600);
       }
 
       startLoop();
     }
 
-    // Colonne: usiamo solo l'id della parte testuale
-    setupColumn("text1"); // left
-    setupColumn("text2"); // spine (centrale)
-    setupColumn("text3"); // left
+    // Set up the three columns
+    setupColumn({ mode:"left",  viewportId:"viewport1", lineId:"line1", textId:"text1" });
+    setupColumn({ mode:"spine", viewportId:"viewport2", lineId:"line2", textId:"text2" });
+    setupColumn({ mode:"left",  viewportId:"viewport3", lineId:"line3", textId:"text3" });
 
-    // Nessun resize speciale necessario: le viewports sono in %,
-    // lo sfondo fa cover mantenendo il ratio.
+    // No extra resize handling needed: computeTargetY runs as text grows,
+    // and the viewports are percentage-based.
   </script>
 </body>
 </html>
