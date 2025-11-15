@@ -2,7 +2,7 @@
 <html lang="it">
 <head>
   <meta charset="utf-8" />
-  <title>Vertical x3 • Helvetica Bold Centered</title>
+  <title>Vertical x3 • Helvetica Bold + Perfect Centering</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
     html, body {
@@ -15,52 +15,67 @@
 
     body {
       font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
-      font-weight: 700; /* Helvetica bold */
+      font-weight: 700; /* HELVETICA BOLD */
     }
 
-    /* Sfondo full-screen con il template 1920x1080 */
+    /* Fullscreen background */
     .stage {
       position: fixed;
       inset: 0;
       background: url("rearprojectiontemplate.jpg") center center / cover no-repeat;
     }
 
-    /* Ogni viewport coincide con un rettangolo blu (coordinate % da 1920x1080) */
+    /* Viewports placed over blue bars */
     .viewport {
       position: absolute;
       overflow: hidden;
-      box-sizing: border-box;
-      /* Per debug:
-      outline: 1px solid rgba(255,255,255,0.4);
+      display: flex;
+      justify-content: center; /* centers INNER flex container */
+      align-items: center;
+      /* Toggle to visualize rectangles:
+      outline: 1px solid red;
       */
     }
 
-    /* La linea di testo è assoluta e centrata orizzontalmente con left:50% + translateX(-50%).
-       Lo scroll agisce solo sul translateY, quindi il centro X resta perfetto. */
-    .line {
-      position: absolute;
-      left: 50%;
-      top: 0;
+    /* Fix horizontal centering:
+       The rotated vertical line is wrapped inside a flex 'inner' container */
+    .inner {
+      display: flex;
+      justify-content: center; /* horizontal centering of text */
+      align-items: flex-start; /* vertical start (top for spine, bottom for left) */
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      position: relative;
+    }
+
+    .viewport.mode-left  .inner { align-items: flex-end; }
+    .viewport.mode-spine .inner { align-items: flex-start; }
+
+    /* SIDE COLUMNS (bottom-up) */
+    .line.left {
       writing-mode: vertical-rl;
+      text-orientation: mixed;
       white-space: nowrap;
       line-height: 1.1;
       font-size: clamp(28px, 6vw, 120px);
+      transform-origin: center;
+      transform: rotate(180deg) translateY(0);
       will-change: transform;
       user-select: none;
-      transform-origin: top center;
     }
 
-    /* Colonne laterali: bottom-up (ruotate) */
-    .line.left {
-      text-orientation: mixed;
-      /* Y verrà aggiornato via JS, qui solo la base: X centrato + rotazione */
-      transform: translateX(-50%) rotate(180deg) translateY(0);
-    }
-
-    /* Colonna centrale: spine, top-down */
+    /* CENTER COLUMN (top-down) */
     .line.spine {
+      writing-mode: vertical-rl;
       text-orientation: sideways;
-      transform: translateX(-50%) translateY(0);
+      white-space: nowrap;
+      line-height: 1.1;
+      font-size: clamp(28px, 6vw, 120px);
+      transform-origin: top center;
+      transform: translateY(0);
+      will-change: transform;
+      user-select: none;
     }
 
     .cursor {
@@ -76,147 +91,116 @@
 </head>
 <body>
   <div class="stage">
-    <!-- COLONNA 1: x=308, y=78, w=317, h=935 -->
-    <div
-      class="viewport"
-      id="viewport1"
-      style="
-        left:16.0417%;
-        top:7.2222%;
-        width:16.5104%;
-        height:86.5741%;
-      "
-    >
-      <div class="line left" id="line1">
-        <span id="text1"></span><span class="cursor"></span>
+
+    <!-- COLUMN 1 -->
+    <div class="viewport mode-left"
+      style="left:16.0417%; top:7.2222%; width:16.5104%; height:86.5741%;">
+      <div class="inner">
+        <div class="line left"><span id="text1"></span><span class="cursor"></span></div>
       </div>
     </div>
 
-    <!-- COLONNA CENTRALE (spine): x=939, y=44, w=265, h=935 -->
-    <div
-      class="viewport"
-      id="viewport2"
-      style="
-        left:48.9063%;
-        top:4.0741%;
-        width:13.8021%;
-        height:86.5741%;
-      "
-    >
-      <div class="line spine" id="line2">
-        <span id="text2"></span><span class="cursor"></span>
+    <!-- CENTER COLUMN -->
+    <div class="viewport mode-spine"
+      style="left:48.9063%; top:4.0741%; width:13.8021%; height:86.5741%;">
+      <div class="inner">
+        <div class="line spine"><span id="text2"></span><span class="cursor"></span></div>
       </div>
     </div>
 
-    <!-- COLONNA 3: x=1468, y=41, w=322, h=935 -->
-    <div
-      class="viewport"
-      id="viewport3"
-      style="
-        left:76.4583%;
-        top:3.7963%;
-        width:16.7708%;
-        height:86.5741%;
-      "
-    >
-      <div class="line left" id="line3">
-        <span id="text3"></span><span class="cursor"></span>
+    <!-- COLUMN 3 -->
+    <div class="viewport mode-left"
+      style="left:76.4583%; top:3.7963%; width:16.7708%; height:86.5741%;">
+      <div class="inner">
+        <div class="line left"><span id="text3"></span><span class="cursor"></span></div>
       </div>
     </div>
+
   </div>
 
   <script>
-    // ===== TEST TEXT (loop, no API) =====
+    /* ===== TEST TEXT ===== */
     const SAMPLE = "The sculpture exists only when unseen.";
 
-    // velocità di battitura
-    const CHAR_MS   = 170;
-    const SPACE_MS  = 280;
-    const COMMA_MS  = 520;
-    const PERIOD_MS = 1000;
-    const DASH_MS   = 650;
+    const CHAR_MS = 170, SPACE_MS = 280, COMMA_MS = 520, PERIOD_MS = 1000, DASH_MS = 650;
+    const BOTTOM_ROOM = 160;
+    const LERP_BASE = 0.06, LERP_BOOST = 0.10, LAG_THRESHOLD = 36;
+    const REDUCED = matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-    function delayFor(ch) {
-      if (ch === " ") return CHAR_MS + SPACE_MS;
-      if (/[,\u061B;]/.test(ch)) return CHAR_MS + COMMA_MS;
-      if (/[.!?]/.test(ch))      return CHAR_MS + PERIOD_MS;
-      if (/[\u2013\u2014-]/.test(ch)) return CHAR_MS + DASH_MS;
-      if (ch === "\u2026") return CHAR_MS + PERIOD_MS;
+    function delayFor(ch){
+      if(ch===" ") return CHAR_MS+SPACE_MS;
+      if(/[,\u061B;]/.test(ch)) return CHAR_MS+COMMA_MS;
+      if(/[.!?]/.test(ch)) return CHAR_MS+PERIOD_MS;
+      if(/[\u2013\u2014-]/.test(ch)) return CHAR_MS+DASH_MS;
       return CHAR_MS;
     }
 
-    // scroll
-    const BOTTOM_ROOM_PX = 160;
-    const LERP_BASE      = 0.06;
-    const LERP_BOOST     = 0.10;
-    const LAG_THRESHOLD  = 36;
-    const REDUCED        = matchMedia("(prefers-reduced-motion: reduce)").matches;
-
-    function setupColumn({ viewportId, lineId, mode }) {
-      const viewport = document.getElementById(viewportId);
-      const line     = document.getElementById(lineId);
+    // xShift in percent: negative = verso sinistra, positivo = verso destra
+    function setupColumn(viewport, line, isSpine, xShift){
       const textSpan = line.querySelector("span");
 
-      const chars = Array.from(SAMPLE);
-      let targetY = 0;
-      let currentY = 0;
+      let targetY = 0, currentY = 0;
+      const chars = [...SAMPLE];
 
-      function computeTargetY() {
+      function computeY(){
         const contentH = line.scrollHeight;
-        const viewH    = viewport.clientHeight;
-        const allowedH = Math.max(0, viewH - BOTTOM_ROOM_PX);
-        const excess   = contentH - allowedH;
+        const viewH = viewport.clientHeight;
+        const allowedH = viewH - BOTTOM_ROOM;
+        const excess = contentH - allowedH;
         targetY = excess > 0 ? -excess : 0;
       }
 
-      function applyTransform() {
-        if (mode === "left") {
-          line.style.transform =
-            `translateX(-50%) rotate(180deg) translateY(${currentY}px)`;
+      function applyY(){
+        if (isSpine) {
+          // colonna centrale: top-down
+          line.style.transform = `translateX(${xShift}%) translateY(${currentY}px)`;
         } else {
-          line.style.transform =
-            `translateX(-50%) translateY(${currentY}px)`;
+          // colonne laterali: bottom-up
+          line.style.transform = `translateX(${xShift}%) rotate(180deg) translateY(${currentY}px)`;
         }
       }
 
-      (function animateScroll() {
-        requestAnimationFrame(animateScroll);
-        if (REDUCED) {
-          currentY = targetY;
-        } else {
-          const lag  = targetY - currentY;
-          const ease = Math.abs(lag) > LAG_THRESHOLD ? LERP_BOOST : LERP_BASE;
-          currentY += lag * ease;
-        }
-        applyTransform();
+      (function animate(){
+        requestAnimationFrame(animate);
+        if(REDUCED){ currentY = targetY; applyY(); return; }
+        const lag = targetY - currentY;
+        const ease = Math.abs(lag) > LAG_THRESHOLD ? LERP_BOOST : LERP_BASE;
+        currentY += lag * ease;
+        applyY();
       })();
 
-      function startLoop() {
+      function loop(){
         textSpan.textContent = "";
-        targetY = 0;
-        currentY = 0;
-        applyTransform();
+        targetY = currentY = 0;
+        applyY();
 
         let i = 0;
-        function typeNext() {
-          if (i >= chars.length) {
-            setTimeout(startLoop, 1200);
+        function type(){
+          if(i >= chars.length){
+            setTimeout(loop, 1200);
             return;
           }
           const ch = chars[i++];
-          textSpan.textContent += (ch === "\n") ? " " : ch;
-          computeTargetY();
-          setTimeout(typeNext, delayFor(ch));
+          textSpan.textContent += ch;
+          computeY();
+          setTimeout(type, delayFor(ch));
         }
-        setTimeout(typeNext, 600);
+        setTimeout(type, 600);
       }
-
-      startLoop();
+      loop();
     }
 
-    setupColumn({ viewportId:"viewport1", lineId:"line1", mode:"left"  });
-    setupColumn({ viewportId:"viewport2", lineId:"line2", mode:"spine" });
-    setupColumn({ viewportId:"viewport3", lineId:"line3", mode:"left"  });
+    const viewports = document.querySelectorAll(".viewport");
+    const lines     = document.querySelectorAll(".line");
+
+    // left column: 20% more to the left  -> -20
+    setupColumn(viewports[0], lines[0], false, -20);
+
+    // center column: 10% more to the right -> +10
+    setupColumn(viewports[1], lines[1], true, 10);
+
+    // right column: 25% more to the right -> +25
+    setupColumn(viewports[2], lines[2], false, 25);
   </script>
 </body>
 </html>
