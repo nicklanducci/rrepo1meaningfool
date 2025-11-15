@@ -2,7 +2,7 @@
 <html lang="it">
 <head>
   <meta charset="utf-8" />
-  <title>Vertical x3 • Template Background Test (Scrolling)</title>
+  <title>Vertical x3 • Template Background Test (Correct Scroll)</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
     html, body {
@@ -16,27 +16,32 @@
       font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
     }
 
-    /* Full-screen background with the 1920x1080 template */
+    /* Sfondo full-screen con il template 1920x1080 */
     .stage {
       position: fixed;
       inset: 0;
       background: url("rearprojectiontemplate.jpg") center center / cover no-repeat;
     }
 
-    /* Each viewport sits on top of one blue rectangle (coordinates from 1920x1080) */
+    /* Ogni viewport sta sopra un rettangolo blu (coordinate % da 1920x1080) */
     .viewport {
       position: absolute;
       overflow: hidden;
       display: flex;
-      justify-content: center;   /* horizontal centering inside the bar */
-      align-items: flex-end;     /* start from bottom; we scroll upward */
+      justify-content: center;   /* centra orizzontalmente la linea di testo */
       box-sizing: border-box;
-      /* uncomment to debug bounding boxes:
+      /* per debug dei rettangoli:
       border: 1px solid rgba(255,255,255,0.4);
       */
     }
 
-    /* left/right columns: bottom-up rotated text */
+    /* Colonne laterali: testo appoggiato in basso (cresce dal basso verso l’alto) */
+    .viewport.mode-left  { align-items: flex-end; }
+
+    /* Colonna centrale: testo parte dall’alto e scende (top-down) */
+    .viewport.mode-spine { align-items: flex-start; }
+
+    /* Linea di testo laterale (bottom-up) */
     .line.left {
       writing-mode: vertical-rl;
       text-orientation: mixed;
@@ -49,15 +54,15 @@
       user-select: none;
     }
 
-    /* middle column: spine orientation, bottom-aligned but sideways text */
+    /* Linea colonna centrale: spine, top-down */
     .line.spine {
       writing-mode: vertical-rl;
       text-orientation: sideways;
       white-space: nowrap;
       line-height: 1.09;
       font-size: clamp(28px, 6vw, 120px);
-      transform-origin: center;
-      transform: translateY(0);
+      transform-origin: top center;
+      transform: translateY(0); /* partenza dall’alto */
       will-change: transform;
       user-select: none;
     }
@@ -75,9 +80,9 @@
 </head>
 <body>
   <div class="stage">
-    <!-- Column 1: x=308, y=78, w=317, h=935 on 1920x1080 -->
+    <!-- Colonna 1: x=308, y=78, w=317, h=935 -->
     <div
-      class="viewport"
+      class="viewport mode-left"
       id="viewport1"
       style="
         left:16.0417%;
@@ -91,9 +96,9 @@
       </div>
     </div>
 
-    <!-- Middle column (spine): x=939, y=44, w=265, h=935 -->
+    <!-- Colonna centrale (spine, top-down): x=939, y=44, w=265, h=935 -->
     <div
-      class="viewport"
+      class="viewport mode-spine"
       id="viewport2"
       style="
         left:48.9063%;
@@ -107,9 +112,9 @@
       </div>
     </div>
 
-    <!-- Column 3: x=1468, y=41, w=322, h=935 -->
+    <!-- Colonna 3: x=1468, y=41, w=322, h=935 -->
     <div
-      class="viewport"
+      class="viewport mode-left"
       id="viewport3"
       style="
         left:76.4583%;
@@ -125,10 +130,10 @@
   </div>
 
   <script>
-    // ===== TEXT (loop, no API) =====
+    // ===== TEST TEXT (loop, no API) =====
     const SAMPLE = "The sculpture exists only when unseen.";
 
-    // ===== TYPING SPEED (same as before: slow & readable) =====
+    // ===== TYPING SPEED =====
     const CHAR_MS   = 170;
     const SPACE_MS  = 280;
     const COMMA_MS  = 520;
@@ -144,8 +149,8 @@
       return CHAR_MS;
     }
 
-    // ===== SCROLL SETTINGS (same for all columns) =====
-    const BOTTOM_ROOM_PX = 160;  // space reserved under the cursor
+    // ===== SCROLL SETTINGS =====
+    const BOTTOM_ROOM_PX = 160;  // spazio minimo sotto il cursore
     const LERP_BASE      = 0.06;
     const LERP_BOOST     = 0.10;
     const LAG_THRESHOLD  = 36;
@@ -166,6 +171,10 @@
         const viewH    = viewport.clientHeight;
         const allowedH = Math.max(0, viewH - BOTTOM_ROOM_PX);
         const excess   = contentH - allowedH;
+
+        // Se il contenuto è più corto di allowedH:
+        //  - laterali: resta appoggiato in basso (gestito da align-items:flex-end)
+        //  - centrale: resta appoggiato in alto (align-items:flex-start, targetY=0)
         targetY = excess > 0 ? -excess : 0;
       }
 
@@ -173,12 +182,12 @@
         if (mode === "left") {
           line.style.transform = `rotate(180deg) translateY(${currentY}px)`;
         } else {
-          // spine: bottom-aligned, sideways, but scrolls up the same way
+          // centrale: top-down, scroll verso l’alto quando piena
           line.style.transform = `translateY(${currentY}px)`;
         }
       }
 
-      // smooth scrolling loop per column
+      // scroll morbido continuo
       (function animateScroll() {
         requestAnimationFrame(animateScroll);
         if (REDUCED_MOTION) {
@@ -201,7 +210,7 @@
 
         function typeNext() {
           if (i >= chars.length) {
-            // phrase finished → short pause, then loop again
+            // frase finita → piccola pausa e riparte (loop)
             setTimeout(startLoop, 1200);
             return;
           }
@@ -217,13 +226,13 @@
       startLoop();
     }
 
-    // Set up the three columns
+    // Inizializza le tre colonne
     setupColumn({ mode:"left",  viewportId:"viewport1", lineId:"line1", textId:"text1" });
     setupColumn({ mode:"spine", viewportId:"viewport2", lineId:"line2", textId:"text2" });
     setupColumn({ mode:"left",  viewportId:"viewport3", lineId:"line3", textId:"text3" });
 
-    // No extra resize handling needed: computeTargetY runs as text grows,
-    // and the viewports are percentage-based.
+    // Le viewports sono in %, quindi restano sopra i rettangoli blu anche al resize;
+    // il calcolo di targetY mantiene il cursore sempre visibile.
   </script>
 </body>
 </html>
