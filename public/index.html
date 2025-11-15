@@ -2,40 +2,45 @@
 <html lang="it">
 <head>
   <meta charset="utf-8" />
-  <title>Vertical Test x3 • Template Background</title>
+  <title>Vertical x3 • Template Background Test</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
     html, body {
       height: 100%;
       margin: 0;
-      background: #000;
-      color: #fff;
-      overflow: hidden;
+      background:#000;
+      color:#fff;
+      overflow:hidden;
     }
     body {
       font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
     }
 
-    /* Stage = full screen, with background template */
+    /* Sfondo full-screen con il template 1920x1080 */
     .stage {
       position: fixed;
       inset: 0;
       background: url("rearprojectiontemplate.jpg") center center / cover no-repeat;
     }
 
-    /* Each viewport will be absolutely positioned over a blue bar
-       (coordinates derived from the 1920x1080 template). */
+    /* Ogni viewport coincide con un rettangolo blu del template.
+       Posizioni in % calcolate da 1920x1080. */
     .viewport {
       position: absolute;
       overflow: hidden;
       display: flex;
-      justify-content: center;
-      align-items: flex-end; /* testo appoggiato in basso */
-      /* DEBUG: per vedere i bordi, decommenta la riga sotto */
-      /* border: 1px solid rgba(255,255,255,0.4); */
+      justify-content: center; /* centra orizzontalmente il testo nella barra */
+      /* border: 1px solid rgba(255,255,255,0.5);  <-- scommenta per debug bordi */
+      box-sizing: border-box;
     }
 
-    /* Vertical line of text */
+    /* Colonne laterali: testo appoggiato in basso (bottom-up) */
+    .viewport.mode-left  { align-items: flex-end; }
+
+    /* Colonna centrale: testo centrato verticalmente */
+    .viewport.mode-spine { align-items: center; }
+
+    /* Linea di testo verticale */
     .line {
       writing-mode: vertical-rl;
       white-space: nowrap;
@@ -46,29 +51,35 @@
       user-select: none;
     }
 
-    /* bottom-up (rotate 180°) */
+    /* Colonne 1 e 3: bottom-up (ruotate) */
     .line.left {
       text-orientation: mixed;
-      transform: rotate(180deg) translateY(0);
+      transform: rotate(180deg);
     }
 
-    /* cursor inline alla fine del testo */
+    /* Colonna centrale: spine, testo che “leggi girando il libro” */
+    .line.spine {
+      text-orientation: sideways;
+      transform: none; /* niente rotazione */
+    }
+
+    /* Cursore inline alla fine del testo */
     .cursor {
-      display: inline-block;
-      width: 1ch;
-      text-align: center;
+      display:inline-block;
+      width:1ch;
+      text-align:center;
       animation: blink 1s step-end infinite;
     }
-    .cursor::after { content: "▌"; }
+    .cursor::after { content:"▌"; }
 
-    @keyframes blink { 50% { opacity: 0; } }
+    @keyframes blink { 50% { opacity:0; } }
   </style>
 </head>
 <body>
   <div class="stage">
-    <!-- Colonna 1: x=308, y=78, w=317, h=935 su 1920x1080 -->
+    <!-- Colonna 1: x=308, y=78, w=317, h=935 -->
     <div
-      class="viewport"
+      class="viewport mode-left"
       id="viewport1"
       style="
         left:16.0417%;
@@ -82,9 +93,9 @@
       </div>
     </div>
 
-    <!-- Colonna 2: x=939, y=44, w=265, h=935 -->
+    <!-- Colonna centrale (spine): x=939, y=44, w=265, h=935 -->
     <div
-      class="viewport"
+      class="viewport mode-spine"
       id="viewport2"
       style="
         left:48.9063%;
@@ -93,14 +104,14 @@
         height:86.5741%;
       "
     >
-      <div class="line left" id="line2">
+      <div class="line spine" id="line2">
         <span id="text2"></span><span class="cursor" id="cursor2"></span>
       </div>
     </div>
 
     <!-- Colonna 3: x=1468, y=41, w=322, h=935 -->
     <div
-      class="viewport"
+      class="viewport mode-left"
       id="viewport3"
       style="
         left:76.4583%;
@@ -116,22 +127,15 @@
   </div>
 
   <script>
-    // ===== TEST SENTENCE (no API) =====
+    // ===== FRASE DI TEST (loop, nessuna API) =====
     const SAMPLE = "The sculpture exists only when unseen.";
 
-    // ===== TYPING SPEED =====
-    const CHAR_MS   = 170;   // base per carattere
-    const SPACE_MS  = 280;   // dopo spazio
-    const COMMA_MS  = 520;   // dopo , ;
-    const PERIOD_MS = 1000;  // dopo . ! ? …
-    const DASH_MS   = 650;   // dopo – — -
-    const REDUCED_MOTION = matchMedia("(prefers-reduced-motion: reduce)").matches;
-
-    // ===== SCROLL (morbido, costante) =====
-    const BOTTOM_ROOM_PX = 180;  // spazio sotto il cursore
-    const LERP_BASE      = 0.06;
-    const LERP_BOOST     = 0.10;
-    const LAG_THRESHOLD  = 36;
+    // ===== TYPING SPEED (uguale a prima, lenta e leggibile) =====
+    const CHAR_MS   = 170;
+    const SPACE_MS  = 280;
+    const COMMA_MS  = 520;
+    const PERIOD_MS = 1000;
+    const DASH_MS   = 650;
 
     function delayFor(ch) {
       if (ch === " ") return CHAR_MS + SPACE_MS;
@@ -142,69 +146,39 @@
       return CHAR_MS;
     }
 
-    function setupColumn(viewportId, lineId, textId) {
-      const viewport = document.getElementById(viewportId);
-      const line     = document.getElementById(lineId);
+    // Setup generico di una colonna (solo typing + loop, nessuno scroll complicato)
+    function setupColumn(textId) {
       const textSpan = document.getElementById(textId);
-
       const chars = Array.from(SAMPLE);
 
-      let targetY = 0;
-      let currentY = 0;
-
-      function computeTargetY() {
-        const contentH = line.scrollHeight;
-        const viewH    = viewport.clientHeight;
-        const allowedH = Math.max(0, viewH - BOTTOM_ROOM_PX);
-        const excess   = contentH - allowedH;
-        targetY = excess > 0 ? -excess : 0;
-      }
-
-      function applyTransform() {
-        line.style.transform = `rotate(180deg) translateY(${currentY}px)`;
-      }
-
-      (function animateScroll() {
-        requestAnimationFrame(animateScroll);
-        if (REDUCED_MOTION) {
-          currentY = targetY;
-        } else {
-          const lag  = targetY - currentY;
-          const ease = Math.abs(lag) > LAG_THRESHOLD ? LERP_BOOST : LERP_BASE;
-          currentY += lag * ease;
-        }
-        applyTransform();
-      })();
-
-      function startTyping() {
+      function startLoop() {
         textSpan.textContent = "";
-        targetY = 0;
-        currentY = 0;
-        applyTransform();
-
         let i = 0;
+
         function typeNext() {
-          if (i >= chars.length) return;
+          if (i >= chars.length) {
+            // una volta finita la frase, piccolo delay e ricomincia
+            setTimeout(startLoop, 1200);
+            return;
+          }
           const ch = chars[i++];
           textSpan.textContent += (ch === "\n") ? " " : ch;
-          computeTargetY();
           setTimeout(typeNext, delayFor(ch));
         }
-        setTimeout(typeNext, 800);
+
+        setTimeout(typeNext, 600); // piccolo ritardo prima di iniziare
       }
 
-      startTyping();
-      return { restart: startTyping };
+      startLoop();
     }
 
-    const col1 = setupColumn("viewport1", "line1", "text1");
-    const col2 = setupColumn("viewport2", "line2", "text2");
-    const col3 = setupColumn("viewport3", "line3", "text3");
+    // Colonne: usiamo solo l'id della parte testuale
+    setupColumn("text1"); // left
+    setupColumn("text2"); // spine (centrale)
+    setupColumn("text3"); // left
 
-    // (se vuoi aggiungere un bottone per restart, puoi usare col1.restart(), col2.restart(), col3.restart())
-    window.addEventListener("resize", () => {
-      // il targetY viene ricalcolato man mano che scrive; qui non serve altro.
-    });
+    // Nessun resize speciale necessario: le viewports sono in %,
+    // lo sfondo fa cover mantenendo il ratio.
   </script>
 </body>
 </html>
