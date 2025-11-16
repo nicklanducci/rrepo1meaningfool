@@ -2,7 +2,7 @@
 <html lang="it">
 <head>
   <meta charset="utf-8" />
-  <title>Vertical x3 • Framed Black Rectangles + Images</title>
+  <title>Vertical x3 • Framed Rectangles with Underlay</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
     html, body {
@@ -24,18 +24,26 @@
       background:#000000;
     }
 
+    /* Red frames underneath (simulate 30px border) */
+    .frame {
+      position:absolute;
+      background:#ff5959;
+      z-index:1;
+    }
+
+    /* Black rectangles on top, with random images */
     .viewport {
       position: absolute;
       overflow: hidden;
-      background:#000000;            /* inner base color (behind images) */
+      background:#000000;   /* inner base color (behind images) */
       display:flex;
       justify-content:center;
       align-items:center;
-      border: 30px solid #ff5959;    /* external frame */
-      box-sizing: content-box;       /* width/height = inner area, border is outside */
+      box-sizing: content-box;  /* width/height = inner area */
       background-size: cover;
       background-position: center;
       background-repeat: no-repeat;
+      z-index:2;
     }
 
     .inner {
@@ -47,13 +55,13 @@
       pointer-events:none;
     }
 
-    /* side columns: bottom-up, 30px from bottom = text starts 30px inside */
+    /* side columns: bottom-up, 30px inside from bottom */
     .viewport.mode-left .inner {
       align-items:flex-end;
       padding-bottom:30px;
     }
 
-    /* center: top-down, 30px from top */
+    /* center: top-down, 30px inside from top */
     .viewport.mode-spine .inner {
       align-items:flex-start;
       padding-top:30px;
@@ -106,7 +114,23 @@
 
 <div class="stage">
 
-  <!-- LEFT RECTANGLE -->
+  <!-- RED FRAMES (30px around each rectangle) -->
+  <!-- Left frame: inner rect (302,78,347,935) -> frame offset -30/+60 -->
+  <div class="frame"
+       style="left:272px; top:48px; width:407px; height:995px;"></div>
+
+  <!-- Center frame: inner rect (941,44,285,935) -->
+  <div class="frame"
+       style="left:911px; top:14px; width:345px; height:995px;"></div>
+
+  <!-- Right frame: inner rect (1468,41,322,935) -->
+  <div class="frame"
+       style="left:1438px; top:11px; width:382px; height:995px;"></div>
+
+
+  <!-- BLACK VIEWPORTS ON TOP -->
+
+  <!-- LEFT RECTANGLE (unchanged position/size) -->
   <div class="viewport mode-left"
        style="left:302px; top:78px; width:347px; height:935px;">
     <div class="inner">
@@ -116,7 +140,7 @@
     </div>
   </div>
 
-  <!-- CENTER RECTANGLE -->
+  <!-- CENTER RECTANGLE (unchanged) -->
   <div class="viewport mode-spine"
        style="left:941px; top:44px; width:285px; height:935px;">
     <div class="inner">
@@ -126,7 +150,7 @@
     </div>
   </div>
 
-  <!-- RIGHT RECTANGLE -->
+  <!-- RIGHT RECTANGLE (unchanged) -->
   <div class="viewport mode-left"
        style="left:1468px; top:41px; width:322px; height:935px;">
     <div class="inner">
