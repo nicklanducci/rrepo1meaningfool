@@ -2,7 +2,7 @@
 <html lang="it">
 <head>
   <meta charset="utf-8" />
-  <title>Vertical x3 • Pixel Tuned Layout + BG images</title>
+  <title>Vertical x3 • Framed Black Rectangles</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
     html, body {
@@ -21,28 +21,18 @@
     .stage {
       position: fixed;
       inset: 0;
-      /* animated background cycle */
-      animation: bgCycle 20s linear infinite;
-    }
-
-    @keyframes bgCycle {
-      0%   { background:#594cda; }
-      25%  { background:#ff5959; }
-      50%  { background:#4090b6; }
-      75%  { background:#000000; }
-      100% { background:#594cda; }
+      background:#000000;
     }
 
     .viewport {
       position: absolute;
       overflow: hidden;
-      background:#0d2cb3;          /* fallback color under images */
+      background:#000000;            /* inner area black */
       display:flex;
       justify-content:center;
       align-items:center;
-      background-size: cover;
-      background-position: center;
-      background-repeat: no-repeat;
+      border: 30px solid #ff5959;    /* external border */
+      box-sizing: border-box;        /* keep outer size fixed */
     }
 
     .inner {
@@ -54,16 +44,16 @@
       pointer-events:none;
     }
 
-    /* side columns: bottom-up, 10px inset from bottom */
+    /* side columns: bottom-up, 30px inset from bottom */
     .viewport.mode-left .inner {
       align-items:flex-end;
-      padding-bottom:10px;
+      padding-bottom:30px;
     }
 
-    /* center: top-down, 10px inset from top */
+    /* center: top-down, 30px inset from top */
     .viewport.mode-spine .inner {
       align-items:flex-start;
-      padding-top:10px;
+      padding-top:30px;
     }
 
     /* Base line style */
@@ -91,8 +81,8 @@
     }
 
     /* Size tweaks */
-    .line.left-big {         /* left column: +10% */
-      font-size: clamp(28px, 6.6vw, 132px);
+    .line.left-big {         /* left column: +20% */
+      font-size: clamp(28px, 7.2vw, 144px);  /* 6vw * 1.2 */
     }
     .line.right-big {        /* right column: +5% */
       font-size: clamp(28px, 6.3vw, 126px);
@@ -170,8 +160,8 @@
     return CHAR_MS;
   }
 
-  // xShift in percent: negative = left, positive = right
-  function setupColumn(viewport, line, isSpine, xShift){
+  // xShiftPercent in %, xShiftPx in px
+  function setupColumn(viewport, line, isSpine, xShiftPercent, xShiftPx){
     const textSpan = line.querySelector("span");
     let targetY = 0, currentY = 0;
     const chars = [...SAMPLE];
@@ -187,10 +177,10 @@
     function applyY(){
       if(isSpine){
         line.style.transform =
-          `translateX(${xShift}%) translateY(${currentY}px)`;
+          `translateX(calc(${xShiftPercent}% + ${xShiftPx}px)) translateY(${currentY}px)`;
       } else {
         line.style.transform =
-          `translateX(${xShift}%) rotate(180deg) translateY(${currentY}px)`;
+          `translateX(calc(${xShiftPercent}% + ${xShiftPx}px)) rotate(180deg) translateY(${currentY}px)`;
       }
     }
 
@@ -231,37 +221,14 @@
   const vp = document.querySelectorAll(".viewport");
   const ln = document.querySelectorAll(".line");
 
-  // text columns
-  setupColumn(vp[0], ln[0], false, -20); // left
-  setupColumn(vp[1], ln[1], true, 10);   // center
-  setupColumn(vp[2], ln[2], false, 25);  // right
+  // left: 20% bigger + 25px to the right
+  setupColumn(vp[0], ln[0], false, -20, 25);
 
-  /* ===== Background images logic ===== */
-  const IMG_COUNT = 96;
-  const IMG_FOLDER = "images2";
+  // center: same as before (10% to the right in %)
+  setupColumn(vp[1], ln[1], true, 10, 0);
 
-  function randomInt(min, max){
-    return Math.floor(Math.random() * (max - min + 1)) + min;
-  }
-
-  function startBackgroundCycle(viewport){
-    let last = 0;
-
-    function pickNew(){
-      let n;
-      do {
-        n = randomInt(1, IMG_COUNT);
-      } while (n === last);
-      last = n;
-      const src = `${IMG_FOLDER}/${n}.jpg?v=${Date.now()}`;
-      viewport.style.backgroundImage = `url("${src}")`;
-    }
-
-    pickNew();                   // first
-    setInterval(pickNew, 10000); // every 10s
-  }
-
-  vp.forEach(startBackgroundCycle);
+  // right: same as before (25% to the right in %)
+  setupColumn(vp[2], ln[2], false, 25, 0);
 </script>
 
 </body>
