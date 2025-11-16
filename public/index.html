@@ -27,8 +27,9 @@
     /* Red frames underneath (simulate 30px border) */
     .frame {
       position:absolute;
-      background:#ff5959;
+      background:#ff5958;          /* colore iniziale (uno dei 3) */
       z-index:1;
+      transition: background-color 5s linear; /* fade di 5 secondi */
     }
 
     /* Black rectangles on top */
@@ -130,9 +131,11 @@
   <div class="frame"
        style="left:272px; top:33px; width:407px; height:1010px;"></div>
 
+  <!-- CENTER FRAME -->
   <div class="frame"
        style="left:911px; top:14px; width:345px; height:995px;"></div>
 
+  <!-- RIGHT FRAME -->
   <div class="frame"
        style="left:1438px; top:11px; width:382px; height:995px;"></div>
 
@@ -156,7 +159,8 @@
     <div class="viewport-bg"></div>
     <div class="inner">
       <div class="line spine" id="line-center">
-        <span id="text2"></span><span class="cursor"></span></div>
+        <span id="text2"></span><span class="cursor"></span>
+      </div>
     </div>
   </div>
 
@@ -219,7 +223,7 @@
         line.style.transform = `translateX(${shiftX}) translateY(${currentY}px)`;
       } else {
         line.style.transform =
-          `translateX(${shiftX}) rotate(180deg) translateY(${currentY}px)`;
+          `translateX(${shiftX}%) rotate(180deg) translateY(${currentY}px)`;
       }
     }
 
@@ -303,6 +307,34 @@
   }
 
   vp.forEach(startBackgroundCycle);
+
+  /* ===== FRAME COLOR CYCLE (all 3 frames same color) ===== */
+  const FRAME_COLORS = ["#ff5958", "#0092a3", "#006cda"];
+  const FRAME_INTERVAL_MS = 60000; // 60s
+
+  const frames = document.querySelectorAll('.frame');
+  let currentColorIndex = 0;
+
+  function setFrameColor(index){
+    const color = FRAME_COLORS[index];
+    frames.forEach(f => {
+      f.style.backgroundColor = color;
+    });
+  }
+
+  function cycleFrameColor(){
+    let next = currentColorIndex;
+    // ensure a different color from previous
+    while (next === currentColorIndex && FRAME_COLORS.length > 1) {
+      next = Math.floor(Math.random() * FRAME_COLORS.length);
+    }
+    currentColorIndex = next;
+    setFrameColor(currentColorIndex);
+  }
+
+  // initial color already matches FRAME_COLORS[0] but we call to be explicit
+  setFrameColor(currentColorIndex);
+  setInterval(cycleFrameColor, FRAME_INTERVAL_MS);
 </script>
 
 </body>
