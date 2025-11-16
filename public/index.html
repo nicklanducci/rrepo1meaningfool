@@ -82,9 +82,9 @@
 
 <div class="stage">
 
-  <!-- LEFT RECTANGLE (+10px on right side) -->
+  <!-- LEFT RECTANGLE — moved 4px right -->
   <div class="viewport mode-left"
-       style="left:298px; top:78px; width:347px; height:935px;">
+       style="left:302px; top:78px; width:347px; height:935px;">
     <div class="inner">
       <div class="line left">
         <span id="text1"></span><span class="cursor"></span>
@@ -92,9 +92,9 @@
     </div>
   </div>
 
-  <!-- CENTER RECTANGLE (+10px on right side) -->
+  <!-- CENTER RECTANGLE — moved 3px right -->
   <div class="viewport mode-spine"
-       style="left:938px; top:44px; width:285px; height:935px;">
+       style="left:941px; top:44px; width:285px; height:935px;">
     <div class="inner">
       <div class="line spine">
         <span id="text2"></span><span class="cursor"></span>
@@ -102,7 +102,7 @@
     </div>
   </div>
 
-  <!-- RIGHT RECTANGLE (unchanged) -->
+  <!-- RIGHT RECTANGLE — unchanged -->
   <div class="viewport mode-left"
        style="left:1468px; top:41px; width:322px; height:935px;">
     <div class="inner">
@@ -115,7 +115,6 @@
 </div>
 
 <script>
-  /* ===== TEST TEXT ===== */
   const SAMPLE = "The sculpture exists only when unseen.";
 
   const CHAR_MS = 170,
@@ -139,7 +138,6 @@
     return CHAR_MS;
   }
 
-  // xShift in percent: negativo = verso sinistra, positivo = verso destra
   function setupColumn(viewport, line, isSpine, xShift){
     const textSpan = line.querySelector("span");
     let targetY=0, currentY=0;
@@ -190,9 +188,9 @@
   const vp = document.querySelectorAll(".viewport");
   const ln = document.querySelectorAll(".line");
 
-  setupColumn(vp[0], ln[0], false, -20); // left column
-  setupColumn(vp[1], ln[1], true, 10);   // center column
-  setupColumn(vp[2], ln[2], false, 25);  // right column
+  setupColumn(vp[0], ln[0], false, -20); // left
+  setupColumn(vp[1], ln[1], true, 10);   // center
+  setupColumn(vp[2], ln[2], false, 25);  // right
 </script>
 
 </body>
