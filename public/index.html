@@ -84,34 +84,39 @@
 <body>
   <div class="stage">
 
-    <!-- LEFT COLUMN (unchanged) -->
+    <!-- LEFT RECTANGLE: wider by 25px on each side -->
     <div class="viewport mode-left"
-      style="left:16.0417%; top:7.2222%; width:16.5104%; height:86.5741%;">
+      style="
+        left: calc(16.0417% - 25px);
+        top: 7.2222%;
+        width: calc(16.5104% + 50px);
+        height: 86.5741%;
+      ">
       <div class="inner">
         <div class="line left"><span id="text1"></span><span class="cursor"></span></div>
       </div>
     </div>
 
-    <!-- CENTER COLUMN — moved 50px left -->
+    <!-- CENTER RECTANGLE: shifted 100px to the right -->
     <div class="viewport mode-spine"
       style="
-        left: calc(48.9063% - 50px);     /* shifted 50px left */
-        top:4.0741%;
-        width: calc(13.8021% + 20px);    /* keeps previous +20px left widening */
-        height:86.5741%;
+        left: calc(48.9063% + 100px);
+        top: 4.0741%;
+        width: calc(13.8021% + 20px);  /* width from previous request */
+        height: 86.5741%;
       ">
       <div class="inner">
         <div class="line spine"><span id="text2"></span><span class="cursor"></span></div>
       </div>
     </div>
 
-    <!-- RIGHT COLUMN — widened +25px on each side -->
+    <!-- RIGHT RECTANGLE: narrower by 15px on each side -->
     <div class="viewport mode-left"
       style="
-        left: calc(76.4583% - 25px);     /* left side expanded 25px left */
-        top:3.7963%;
-        width: calc(16.7708% + 50px);    /* +25px left +25px right */
-        height:86.5741%;
+        left: calc(76.4583% + 15px);
+        top: 3.7963%;
+        width: calc(16.7708% - 30px);
+        height: 86.5741%;
       ">
       <div class="inner">
         <div class="line left"><span id="text3"></span><span class="cursor"></span></div>
