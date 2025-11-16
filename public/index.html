@@ -2,13 +2,13 @@
 <html lang="it">
 <head>
   <meta charset="utf-8" />
-  <title>Vertical x3 • Helvetica Bold + Perfect Centering</title>
+  <title>Vertical x3 • Helvetica Bold + Centered</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
     html, body {
       height: 100%;
       margin: 0;
-      background:#000;
+      background:#ef6560;        /* NEW BACKGROUND COLOR */
       color:#fff;
       overflow:hidden;
     }
@@ -18,31 +18,27 @@
       font-weight: 700; /* HELVETICA BOLD */
     }
 
-    /* Fullscreen background */
+    /* Instead of background image, we now place rectangles manually */
     .stage {
       position: fixed;
       inset: 0;
-      background: url("rearprojectiontemplate.jpg") center center / cover no-repeat;
+      background:#ef6560;
     }
 
-    /* Viewports placed over blue bars */
+    /* BLUE RECTANGLES (exact same coords as before) */
     .viewport {
       position: absolute;
       overflow: hidden;
       display: flex;
-      justify-content: center; /* centers INNER flex container */
+      justify-content: center;
       align-items: center;
-      /* Toggle to visualize rectangles:
-      outline: 1px solid red;
-      */
+      background:#0d2cb3;          /* NEW BLUE RECTANGLES */
     }
 
-    /* Fix horizontal centering:
-       The rotated vertical line is wrapped inside a flex 'inner' container */
     .inner {
       display: flex;
-      justify-content: center; /* horizontal centering of text */
-      align-items: flex-start; /* vertical start (top for spine, bottom for left) */
+      justify-content: center;
+      align-items: flex-start;
       width: 100%;
       height: 100%;
       pointer-events: none;
@@ -119,7 +115,6 @@
   </div>
 
   <script>
-    /* ===== TEST TEXT ===== */
     const SAMPLE = "The sculpture exists only when unseen.";
 
     const CHAR_MS = 170, SPACE_MS = 280, COMMA_MS = 520, PERIOD_MS = 1000, DASH_MS = 650;
@@ -135,7 +130,6 @@
       return CHAR_MS;
     }
 
-    // xShift in percent: negativo = verso sinistra, positivo = verso destra
     function setupColumn(viewport, line, isSpine, xShift){
       const textSpan = line.querySelector("span");
 
@@ -152,10 +146,8 @@
 
       function applyY(){
         if (isSpine) {
-          // colonna centrale: top-down
           line.style.transform = `translateX(${xShift}%) translateY(${currentY}px)`;
         } else {
-          // colonne laterali: bottom-up
           line.style.transform = `translateX(${xShift}%) rotate(180deg) translateY(${currentY}px)`;
         }
       }
@@ -193,15 +185,10 @@
     const viewports = document.querySelectorAll(".viewport");
     const lines     = document.querySelectorAll(".line");
 
-    // da destra a sinistra:
-    // 1) prima colonna: 20% più a sinistra → -20
-    setupColumn(viewports[0], lines[0], false, -50);
-
-    // 2) centrale: 10% più a destra → +10
-    setupColumn(viewports[1], lines[1], true, 30);
-
-    // 3) ultima: 25% più a destra → +25
-    setupColumn(viewports[2], lines[2], false, 55);
+    // Offsets
+    setupColumn(viewports[0], lines[0], false, -20);  // left column more left
+    setupColumn(viewports[1], lines[1], true, 10);    // center column more right
+    setupColumn(viewports[2], lines[2], false, 25);   // right column more right
   </script>
 </body>
 </html>
