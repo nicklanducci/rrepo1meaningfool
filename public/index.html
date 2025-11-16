@@ -31,19 +31,28 @@
       z-index:1;
     }
 
-    /* Black rectangles on top, with random images */
+    /* Black rectangles on top */
     .viewport {
       position: absolute;
       overflow: hidden;
-      background:#000000;   /* inner base color (behind images) */
+      background:#000000;   /* base black */
       display:flex;
       justify-content:center;
       align-items:center;
-      box-sizing: content-box;  /* width/height = inner area */
+      box-sizing: content-box;
+      z-index:2;
+    }
+
+    /* Background image layer with 80% transparency (opacity 0.2) */
+    .viewport-bg {
+      position:absolute;
+      inset:0;
       background-size: cover;
       background-position: center;
       background-repeat: no-repeat;
-      z-index:2;
+      opacity:0.2;          /* 80% transparent */
+      pointer-events:none;
+      z-index:1;
     }
 
     .inner {
@@ -53,12 +62,14 @@
       justify-content:center;
       align-items:flex-start;
       pointer-events:none;
+      position:relative;
+      z-index:2; /* text above background layer */
     }
 
-    /* side columns: bottom-up, 50px inside from bottom (more indent) */
+    /* side columns: bottom-up, 90px inside from bottom */
     .viewport.mode-left .inner {
       align-items:flex-end;
-      padding-bottom:50px;
+      padding-bottom:90px;
     }
 
     /* center: top-down, 50px inside from top */
@@ -130,9 +141,10 @@
 
   <!-- BLACK VIEWPORTS ON TOP -->
 
-  <!-- LEFT RECTANGLE (unchanged position/size) -->
+  <!-- LEFT RECTANGLE -->
   <div class="viewport mode-left"
        style="left:302px; top:78px; width:347px; height:935px;">
+    <div class="viewport-bg"></div>
     <div class="inner">
       <div class="line left left-big" id="line-left">
         <span id="text1"></span><span class="cursor"></span>
@@ -140,9 +152,10 @@
     </div>
   </div>
 
-  <!-- CENTER RECTANGLE (width 275px, centered as decided) -->
+  <!-- CENTER RECTANGLE -->
   <div class="viewport mode-spine"
        style="left:946px; top:44px; width:275px; height:935px;">
+    <div class="viewport-bg"></div>
     <div class="inner">
       <div class="line spine" id="line-center">
         <span id="text2"></span><span class="cursor"></span>
@@ -150,9 +163,10 @@
     </div>
   </div>
 
-  <!-- RIGHT RECTANGLE (unchanged position/size) -->
+  <!-- RIGHT RECTANGLE -->
   <div class="viewport mode-left"
        style="left:1468px; top:41px; width:322px; height:935px;">
+    <div class="viewport-bg"></div>
     <div class="inner">
       <div class="line left right-big" id="line-right">
         <span id="text3"></span><span class="cursor"></span>
@@ -267,12 +281,15 @@
 
   // Each rectangle: 5s black, then image; new cycle every 20s
   function startBackgroundCycle(viewport){
+    const bg = viewport.querySelector('.viewport-bg');
+    if (!bg) return;
+
     let last = 0;
 
     function cycle(){
       // Phase 1: pure black, no image (5s)
-      viewport.style.backgroundImage = "none";
-      viewport.style.backgroundColor = "#000000";
+      bg.style.backgroundImage = "none";
+      bg.style.backgroundColor = "#000000";
 
       setTimeout(() => {
         // Phase 2: pick a new random image
@@ -283,8 +300,8 @@
         last = n;
 
         const src = `${IMG_FOLDER}/${n}.jpg?v=${Date.now()}`;
-        viewport.style.backgroundImage = `url("${src}")`;
-        // backgroundColor stays black behind
+        bg.style.backgroundImage = `url("${src}")`;
+        bg.style.backgroundColor = "#000000";
       }, 5000); // after 5 seconds of black
     }
 
