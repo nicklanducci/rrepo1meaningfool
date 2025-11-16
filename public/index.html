@@ -8,7 +8,7 @@
     html, body {
       height: 100%;
       margin: 0;
-      background:#ef6570;
+      background:#000000;
       color:#fff;
       overflow:hidden;
     }
@@ -21,13 +21,22 @@
     .stage {
       position: fixed;
       inset: 0;
-      background:#ef6570;
+      /* animated background cycle */
+      animation: bgCycle 20s linear infinite;
+    }
+
+    @keyframes bgCycle {
+      0%   { background:#594cda; }
+      25%  { background:#ff5959; }
+      50%  { background:#4090b6; }
+      75%  { background:#000000; }
+      100% { background:#594cda; }
     }
 
     .viewport {
       position: absolute;
       overflow: hidden;
-      background:#0d2cb3;          /* fallback color under image */
+      background:#0d2cb3;          /* fallback color under images */
       display:flex;
       justify-content:center;
       align-items:center;
@@ -45,9 +54,19 @@
       pointer-events:none;
     }
 
-    .viewport.mode-left .inner { align-items:flex-end; }
+    /* side columns: bottom-up, 10px inset from bottom */
+    .viewport.mode-left .inner {
+      align-items:flex-end;
+      padding-bottom:10px;
+    }
 
-    /* Base style for all lines */
+    /* center: top-down, 10px inset from top */
+    .viewport.mode-spine .inner {
+      align-items:flex-start;
+      padding-top:10px;
+    }
+
+    /* Base line style */
     .line {
       writing-mode: vertical-rl;
       white-space: nowrap;
@@ -57,14 +76,14 @@
       user-select: none;
     }
 
-    /* Left + right are bottom-up */
+    /* Left + right columns (bottom-up) */
     .line.left {
       text-orientation: mixed;
       transform-origin:center;
       transform: rotate(180deg) translateY(0);
     }
 
-    /* Center is top-down */
+    /* Center column (top-down) */
     .line.spine {
       text-orientation: sideways;
       transform-origin:top center;
@@ -127,8 +146,8 @@
 </div>
 
 <script>
-  /* ===== TEST TEXT (with leading space) ===== */
-  const SAMPLE = "   The sculpture exists only when unseen.";
+  /* ===== TEXT (with leading space) ===== */
+  const SAMPLE = " The sculpture exists only when unseen.";
 
   const CHAR_MS = 170,
         SPACE_MS = 280,
@@ -151,10 +170,10 @@
     return CHAR_MS;
   }
 
-  // xShift in percent: negativo = verso sinistra, positivo = verso destra
+  // xShift in percent: negative = left, positive = right
   function setupColumn(viewport, line, isSpine, xShift){
     const textSpan = line.querySelector("span");
-    let targetY=0, currentY=0;
+    let targetY = 0, currentY = 0;
     const chars = [...SAMPLE];
 
     function computeY(){
@@ -162,39 +181,49 @@
       const viewH = viewport.clientHeight;
       const allowedH = viewH - BOTTOM_ROOM;
       const excess = contentH - allowedH;
-      targetY = excess>0 ? -excess : 0;
+      targetY = excess > 0 ? -excess : 0;
     }
 
     function applyY(){
-      if(isSpine)
-        line.style.transform = `translateX(${xShift}%) translateY(${currentY}px)`;
-      else
-        line.style.transform = `translateX(${xShift}%) rotate(180deg) translateY(${currentY}px)`;
+      if(isSpine){
+        line.style.transform =
+          `translateX(${xShift}%) translateY(${currentY}px)`;
+      } else {
+        line.style.transform =
+          `translateX(${xShift}%) rotate(180deg) translateY(${currentY}px)`;
+      }
     }
 
     (function animate(){
       requestAnimationFrame(animate);
-      if(REDUCED){ currentY=targetY; applyY(); return;}
-      const lag = targetY-currentY;
-      const ease = Math.abs(lag)>LAG_THRESHOLD ? LERP_BOOST : LERP_BASE;
-      currentY += lag*ease;
+      if(REDUCED){
+        currentY = targetY;
+        applyY();
+        return;
+      }
+      const lag = targetY - currentY;
+      const ease = Math.abs(lag) > LAG_THRESHOLD ? LERP_BOOST : LERP_BASE;
+      currentY += lag * ease;
       applyY();
     })();
 
     function loop(){
-      textSpan.textContent="";
-      targetY=currentY=0;
+      textSpan.textContent = "";
+      targetY = currentY = 0;
       applyY();
 
-      let i=0;
+      let i = 0;
       function type(){
-        if(i>=chars.length){ setTimeout(loop,1200); return; }
-        const ch=chars[i++];
-        textSpan.textContent+=ch;
+        if(i >= chars.length){
+          setTimeout(loop, 1200);
+          return;
+        }
+        const ch = chars[i++];
+        textSpan.textContent += ch;
         computeY();
         setTimeout(type, delayFor(ch));
       }
-      setTimeout(type,600);
+      setTimeout(type, 600);
     }
     loop();
   }
@@ -222,14 +251,14 @@
       let n;
       do {
         n = randomInt(1, IMG_COUNT);
-      } while (n === last);  // avoid immediate repeat
+      } while (n === last);
       last = n;
       const src = `${IMG_FOLDER}/${n}.jpg?v=${Date.now()}`;
       viewport.style.backgroundImage = `url("${src}")`;
     }
 
-    pickNew();                      // initial image
-    setInterval(pickNew, 10000);    // every 10 seconds
+    pickNew();                   // first
+    setInterval(pickNew, 10000); // every 10s
   }
 
   vp.forEach(startBackgroundCycle);
