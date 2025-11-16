@@ -52,6 +52,8 @@
       font-size: clamp(28px, 6vw, 120px);
       transform-origin:center;
       transform: rotate(180deg) translateY(0);
+      will-change: transform;
+      user-select: none;
     }
 
     .line.spine {
@@ -62,6 +64,8 @@
       font-size: clamp(28px, 6vw, 120px);
       transform-origin:top center;
       transform: translateY(0);
+      will-change: transform;
+      user-select: none;
     }
 
     .cursor {
@@ -72,26 +76,29 @@
     }
     .cursor::after { content:"▌"; }
     @keyframes blink { 50% { opacity:0; } }
-
   </style>
 </head>
 <body>
 
 <div class="stage">
 
-  <!-- LEFT RECTANGLE (pixel tuned) -->
+  <!-- LEFT RECTANGLE (+10px on right side) -->
   <div class="viewport mode-left"
-       style="left:298px; top:78px; width:337px; height:935px;">
+       style="left:298px; top:78px; width:347px; height:935px;">
     <div class="inner">
-      <div class="line left"><span id="text1"></span><span class="cursor"></span></div>
+      <div class="line left">
+        <span id="text1"></span><span class="cursor"></span>
+      </div>
     </div>
   </div>
 
-  <!-- CENTER RECTANGLE (pixel tuned) -->
+  <!-- CENTER RECTANGLE (+10px on right side) -->
   <div class="viewport mode-spine"
-       style="left:938px; top:44px; width:275px; height:935px;">
+       style="left:938px; top:44px; width:285px; height:935px;">
     <div class="inner">
-      <div class="line spine"><span id="text2"></span><span class="cursor"></span></div>
+      <div class="line spine">
+        <span id="text2"></span><span class="cursor"></span>
+      </div>
     </div>
   </div>
 
@@ -99,7 +106,9 @@
   <div class="viewport mode-left"
        style="left:1468px; top:41px; width:322px; height:935px;">
     <div class="inner">
-      <div class="line left"><span id="text3"></span><span class="cursor"></span></div>
+      <div class="line left">
+        <span id="text3"></span><span class="cursor"></span>
+      </div>
     </div>
   </div>
 
@@ -109,9 +118,17 @@
   /* ===== TEST TEXT ===== */
   const SAMPLE = "The sculpture exists only when unseen.";
 
-  const CHAR_MS = 170, SPACE_MS = 280, COMMA_MS = 520, PERIOD_MS = 1000, DASH_MS = 650;
+  const CHAR_MS = 170,
+        SPACE_MS = 280,
+        COMMA_MS = 520,
+        PERIOD_MS = 1000,
+        DASH_MS = 650;
+
   const BOTTOM_ROOM = 160;
-  const LERP_BASE = 0.06, LERP_BOOST = 0.10, LAG_THRESHOLD = 36;
+  const LERP_BASE   = 0.06,
+        LERP_BOOST  = 0.10,
+        LAG_THRESHOLD = 36;
+
   const REDUCED = matchMedia("(prefers-reduced-motion: reduce)").matches;
 
   function delayFor(ch){
@@ -122,10 +139,10 @@
     return CHAR_MS;
   }
 
+  // xShift in percent: negativo = verso sinistra, positivo = verso destra
   function setupColumn(viewport, line, isSpine, xShift){
     const textSpan = line.querySelector("span");
     let targetY=0, currentY=0;
-
     const chars = [...SAMPLE];
 
     function computeY(){
@@ -174,9 +191,8 @@
   const ln = document.querySelectorAll(".line");
 
   setupColumn(vp[0], ln[0], false, -20); // left column
-  setupColumn(vp[1], ln[1], true, 10);   // center
-  setupColumn(vp[2], ln[2], false, 25);  // right
-
+  setupColumn(vp[1], ln[1], true, 10);   // center column
+  setupColumn(vp[2], ln[2], false, 25);  // right column
 </script>
 
 </body>
