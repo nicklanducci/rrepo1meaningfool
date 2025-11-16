@@ -29,7 +29,7 @@
       position:absolute;
       background:#ff5958;          /* initial color */
       z-index:1;
-      transition: background-color 5s linear; /* 5s fade between colors */
+      transition: background-color 5s linear; /* fade 5s */
     }
 
     /* Black rectangles on top */
@@ -300,7 +300,7 @@
 
         const src = `${IMG_FOLDER}/${n}.jpg?v=${Date.now()}`;
         bg.style.backgroundImage = `url("${src}")`;
-        bg.style.backgroundColor = "#000000`;
+        bg.style.backgroundColor = "#000000";
       }, 5000);
     }
 
@@ -328,7 +328,7 @@
     let next = currentColorIndex;
     // ensure a different color from previous
     while (next === currentColorIndex && FRAME_COLORS.length > 1) {
-      next = Math.floor(Math.random() * (FRAME_COLORS.length));
+      next = Math.floor(Math.random() * FRAME_COLORS.length);
     }
     currentColorIndex = next;
     setFrameColor(currentColorIndex);
