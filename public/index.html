@@ -119,7 +119,7 @@
   <div class="frame"
        style="left:272px; top:48px; width:407px; height:995px;"></div>
 
-  <!-- Center frame: inner rect (941,44,285,935) -->
+  <!-- Center frame: inner rect originally (941,44,285,935) -->
   <div class="frame"
        style="left:911px; top:14px; width:345px; height:995px;"></div>
 
@@ -140,9 +140,9 @@
     </div>
   </div>
 
-  <!-- CENTER RECTANGLE (unchanged) -->
+  <!-- CENTER RECTANGLE (width 5px less on both sides → -10 total, centered) -->
   <div class="viewport mode-spine"
-       style="left:941px; top:44px; width:285px; height:935px;">
+       style="left:946px; top:44px; width:275px; height:935px;">
     <div class="inner">
       <div class="line spine" id="line-center">
         <span id="text2"></span><span class="cursor"></span>
@@ -150,7 +150,7 @@
     </div>
   </div>
 
-  <!-- RIGHT RECTANGLE (unchanged) -->
+  <!-- RIGHT RECTANGLE (unchanged position/size) -->
   <div class="viewport mode-left"
        style="left:1468px; top:41px; width:322px; height:935px;">
     <div class="inner">
@@ -254,8 +254,8 @@
   // center: +10% to the right (in % only)
   setupColumn(vp[1], ln[1], true, 10, 0);
 
-  // right: 30px moved to the left
-  setupColumn(vp[2], ln[2], false, 25, -30);
+  // right: 30px moved further left (total -55px)
+  setupColumn(vp[2], ln[2], false, 25, -55);
 
   /* ===== Background images logic ===== */
   const IMG_COUNT = 96;
@@ -297,3 +297,4 @@
 
 </body>
 </html>
+
