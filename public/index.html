@@ -2,7 +2,7 @@
 <html lang="it">
 <head>
   <meta charset="utf-8" />
-  <title>Vertical x3 • Pixel Tuned Layout</title>
+  <title>Vertical x3 • Pixel Tuned Layout + BG images</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
     html, body {
@@ -27,10 +27,13 @@
     .viewport {
       position: absolute;
       overflow: hidden;
-      background:#0d2cb3;
+      background:#0d2cb3;          /* fallback color under image */
       display:flex;
       justify-content:center;
       align-items:center;
+      background-size: cover;
+      background-position: center;
+      background-repeat: no-repeat;
     }
 
     .inner {
@@ -44,28 +47,36 @@
 
     .viewport.mode-left .inner { align-items:flex-end; }
 
-    .line.left {
+    /* Base style for all lines */
+    .line {
       writing-mode: vertical-rl;
-      text-orientation: mixed;
       white-space: nowrap;
       line-height: 1.1;
       font-size: clamp(28px, 6vw, 120px);
-      transform-origin:center;
-      transform: rotate(180deg) translateY(0);
       will-change: transform;
       user-select: none;
     }
 
+    /* Left + right are bottom-up */
+    .line.left {
+      text-orientation: mixed;
+      transform-origin:center;
+      transform: rotate(180deg) translateY(0);
+    }
+
+    /* Center is top-down */
     .line.spine {
-      writing-mode: vertical-rl;
       text-orientation: sideways;
-      white-space: nowrap;
-      line-height:1.1;
-      font-size: clamp(28px, 6vw, 120px);
       transform-origin:top center;
       transform: translateY(0);
-      will-change: transform;
-      user-select: none;
+    }
+
+    /* Size tweaks */
+    .line.left-big {         /* left column: +10% */
+      font-size: clamp(28px, 6.6vw, 132px);
+    }
+    .line.right-big {        /* right column: +5% */
+      font-size: clamp(28px, 6.3vw, 126px);
     }
 
     .cursor {
@@ -75,6 +86,7 @@
       text-align:center;
     }
     .cursor::after { content:"▌"; }
+
     @keyframes blink { 50% { opacity:0; } }
   </style>
 </head>
@@ -82,31 +94,31 @@
 
 <div class="stage">
 
-  <!-- LEFT RECTANGLE — moved 4px right -->
+  <!-- LEFT RECTANGLE -->
   <div class="viewport mode-left"
        style="left:302px; top:78px; width:347px; height:935px;">
     <div class="inner">
-      <div class="line left">
+      <div class="line left left-big" id="line-left">
         <span id="text1"></span><span class="cursor"></span>
       </div>
     </div>
   </div>
 
-  <!-- CENTER RECTANGLE — moved 3px right -->
+  <!-- CENTER RECTANGLE -->
   <div class="viewport mode-spine"
        style="left:941px; top:44px; width:285px; height:935px;">
     <div class="inner">
-      <div class="line spine">
+      <div class="line spine" id="line-center">
         <span id="text2"></span><span class="cursor"></span>
       </div>
     </div>
   </div>
 
-  <!-- RIGHT RECTANGLE — unchanged -->
+  <!-- RIGHT RECTANGLE -->
   <div class="viewport mode-left"
        style="left:1468px; top:41px; width:322px; height:935px;">
     <div class="inner">
-      <div class="line left">
+      <div class="line left right-big" id="line-right">
         <span id="text3"></span><span class="cursor"></span>
       </div>
     </div>
@@ -115,7 +127,8 @@
 </div>
 
 <script>
-  const SAMPLE = "The sculpture exists only when unseen.";
+  /* ===== TEST TEXT (with leading space) ===== */
+  const SAMPLE = " The sculpture exists only when unseen.";
 
   const CHAR_MS = 170,
         SPACE_MS = 280,
@@ -133,11 +146,12 @@
   function delayFor(ch){
     if(ch===" ") return CHAR_MS+SPACE_MS;
     if(/[,\u061B;]/.test(ch)) return CHAR_MS+COMMA_MS;
-    if(/[.!?]/.test(ch)) return CHAR_MS+PERIOD_MS;
+    if(/[.!?]/.test(ch))      return CHAR_MS+PERIOD_MS;
     if(/[\u2013\u2014-]/.test(ch)) return CHAR_MS+DASH_MS;
     return CHAR_MS;
   }
 
+  // xShift in percent: negativo = verso sinistra, positivo = verso destra
   function setupColumn(viewport, line, isSpine, xShift){
     const textSpan = line.querySelector("span");
     let targetY=0, currentY=0;
@@ -188,9 +202,37 @@
   const vp = document.querySelectorAll(".viewport");
   const ln = document.querySelectorAll(".line");
 
+  // text columns
   setupColumn(vp[0], ln[0], false, -20); // left
   setupColumn(vp[1], ln[1], true, 10);   // center
   setupColumn(vp[2], ln[2], false, 25);  // right
+
+  /* ===== Background images logic ===== */
+  const IMG_COUNT = 96;
+  const IMG_FOLDER = "images2";
+
+  function randomInt(min, max){
+    return Math.floor(Math.random() * (max - min + 1)) + min;
+  }
+
+  function startBackgroundCycle(viewport){
+    let last = 0;
+
+    function pickNew(){
+      let n;
+      do {
+        n = randomInt(1, IMG_COUNT);
+      } while (n === last);  // avoid immediate repeat
+      last = n;
+      const src = `${IMG_FOLDER}/${n}.jpg?v=${Date.now()}`;
+      viewport.style.backgroundImage = `url("${src}")`;
+    }
+
+    pickNew();                      // initial image
+    setInterval(pickNew, 10000);    // every 10 seconds
+  }
+
+  vp.forEach(startBackgroundCycle);
 </script>
 
 </body>
