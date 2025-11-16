@@ -50,7 +50,7 @@
       background-size: cover;
       background-position: center;
       background-repeat: no-repeat;
-      opacity:0.7;     /* <-- UPDATED */
+      opacity:0.7;     /* 30% transparent */
       pointer-events:none;
       z-index:1;
     }
@@ -113,8 +113,8 @@
     .cursor {
       display:inline-block;
       width:1ch;
-      animation: blink 1s step-end infinite;
       text-align:center;
+      animation: blink 1s step-end infinite;
     }
     .cursor::after { content:"▌"; }
 
@@ -126,8 +126,9 @@
 <div class="stage">
 
   <!-- RED FRAMES (outer borders) -->
+  <!-- LEFT FRAME – made 15px taller upwards -->
   <div class="frame"
-       style="left:272px; top:48px; width:407px; height:995px;"></div>
+       style="left:272px; top:33px; width:407px; height:1010px;"></div>
 
   <div class="frame"
        style="left:911px; top:14px; width:345px; height:995px;"></div>
@@ -138,9 +139,9 @@
 
   <!-- BLACK VIEWPORTS WITH IMAGE LAYERS -->
 
-  <!-- LEFT RECTANGLE -->
+  <!-- LEFT RECTANGLE – made 15px taller upwards -->
   <div class="viewport mode-left"
-       style="left:302px; top:78px; width:347px; height:935px;">
+       style="left:302px; top:63px; width:347px; height:950px;">
     <div class="viewport-bg"></div>
     <div class="inner">
       <div class="line left left-big" id="line-left">
@@ -155,8 +156,7 @@
     <div class="viewport-bg"></div>
     <div class="inner">
       <div class="line spine" id="line-center">
-        <span id="text2"></span><span class="cursor"></span>
-      </div>
+        <span id="text2"></span><span class="cursor"></span></div>
     </div>
   </div>
 
