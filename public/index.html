@@ -2,7 +2,7 @@
 <html lang="it">
 <head>
   <meta charset="utf-8" />
-  <title>Vertical x3 • Framed Black Rectangles</title>
+  <title>Vertical x3 • Framed Black Rectangles + Images</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
     html, body {
@@ -27,12 +27,15 @@
     .viewport {
       position: absolute;
       overflow: hidden;
-      background:#000000;            /* inner area black */
+      background:#000000;            /* inner base color (behind images) */
       display:flex;
       justify-content:center;
       align-items:center;
-      border: 30px solid #ff5959;    /* external border */
-      box-sizing: border-box;        /* keep outer size fixed */
+      border: 30px solid #ff5959;    /* external frame */
+      box-sizing: content-box;       /* width/height = inner area, border is outside */
+      background-size: cover;
+      background-position: center;
+      background-repeat: no-repeat;
     }
 
     .inner {
@@ -44,13 +47,13 @@
       pointer-events:none;
     }
 
-    /* side columns: bottom-up, 30px inset from bottom */
+    /* side columns: bottom-up, 30px from bottom = text starts 30px inside */
     .viewport.mode-left .inner {
       align-items:flex-end;
       padding-bottom:30px;
     }
 
-    /* center: top-down, 30px inset from top */
+    /* center: top-down, 30px from top */
     .viewport.mode-spine .inner {
       align-items:flex-start;
       padding-top:30px;
@@ -82,7 +85,7 @@
 
     /* Size tweaks */
     .line.left-big {         /* left column: +20% */
-      font-size: clamp(28px, 7.2vw, 144px);  /* 6vw * 1.2 */
+      font-size: clamp(28px, 7.2vw, 144px);
     }
     .line.right-big {        /* right column: +5% */
       font-size: clamp(28px, 6.3vw, 126px);
@@ -175,12 +178,12 @@
     }
 
     function applyY(){
+      const shiftX = `calc(${xShiftPercent}% + ${xShiftPx}px)`;
       if(isSpine){
-        line.style.transform =
-          `translateX(calc(${xShiftPercent}% + ${xShiftPx}px)) translateY(${currentY}px)`;
+        line.style.transform = `translateX(${shiftX}) translateY(${currentY}px)`;
       } else {
         line.style.transform =
-          `translateX(calc(${xShiftPercent}% + ${xShiftPx}px)) rotate(180deg) translateY(${currentY}px)`;
+          `translateX(${shiftX}) rotate(180deg) translateY(${currentY}px)`;
       }
     }
 
@@ -224,11 +227,48 @@
   // left: 20% bigger + 25px to the right
   setupColumn(vp[0], ln[0], false, -20, 25);
 
-  // center: same as before (10% to the right in %)
+  // center: +10% to the right (in % only)
   setupColumn(vp[1], ln[1], true, 10, 0);
 
-  // right: same as before (25% to the right in %)
-  setupColumn(vp[2], ln[2], false, 25, 0);
+  // right: 30px moved to the left
+  setupColumn(vp[2], ln[2], false, 25, -30);
+
+  /* ===== Background images logic ===== */
+  const IMG_COUNT = 96;
+  const IMG_FOLDER = "images2";
+
+  function randomInt(min, max){
+    return Math.floor(Math.random() * (max - min + 1)) + min;
+  }
+
+  // Each rectangle: 5s black, then image; new cycle every 20s
+  function startBackgroundCycle(viewport){
+    let last = 0;
+
+    function cycle(){
+      // Phase 1: pure black, no image (5s)
+      viewport.style.backgroundImage = "none";
+      viewport.style.backgroundColor = "#000000";
+
+      setTimeout(() => {
+        // Phase 2: pick a new random image
+        let n;
+        do {
+          n = randomInt(1, IMG_COUNT);
+        } while (n === last && IMG_COUNT > 1);
+        last = n;
+
+        const src = `${IMG_FOLDER}/${n}.jpg?v=${Date.now()}`;
+        viewport.style.backgroundImage = `url("${src}")`;
+        // backgroundColor stays black behind
+      }, 5000); // after 5 seconds of black
+    }
+
+    cycle();                   // initial cycle
+    setInterval(cycle, 20000); // every 20s new cycle (black+image)
+  }
+
+  vp.forEach(startBackgroundCycle);
 </script>
 
 </body>
