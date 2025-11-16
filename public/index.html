@@ -2,41 +2,48 @@
 <html lang="it">
 <head>
   <meta charset="utf-8" />
-  <title>Vertical x3 • Helvetica Bold</title>
+  <title>Vertical x3 • Helvetica Bold + Perfect Centering</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
     html, body {
       height: 100%;
       margin: 0;
-      background:#ef6560;
+      background:#ef6570;  /* NEW background color */
       color:#fff;
       overflow:hidden;
     }
 
     body {
       font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
-      font-weight: 700;
+      font-weight: 700; /* HELVETICA BOLD */
     }
 
+    /* Fullscreen stage (no image, just color) */
     .stage {
       position: fixed;
       inset: 0;
-      background:#ef6560;
+      background:#ef6570;
     }
 
+    /* Viewports placed over blue bars */
     .viewport {
       position: absolute;
       overflow: hidden;
       display: flex;
-      justify-content: center;
+      justify-content: center; /* centers INNER flex container */
       align-items: center;
-      background:#0d2cb3;
+      background:#0d2cb3;      /* BLUE RECTANGLES */
+      /* Toggle to visualize rectangles:
+      outline: 1px solid red;
+      */
     }
 
+    /* Fix horizontal centering:
+       The rotated vertical line is wrapped inside a flex 'inner' container */
     .inner {
       display: flex;
-      justify-content: center;
-      align-items: flex-start;
+      justify-content: center; /* horizontal centering of text */
+      align-items: flex-start; /* vertical start (top for spine, bottom for left) */
       width: 100%;
       height: 100%;
       pointer-events: none;
@@ -46,6 +53,7 @@
     .viewport.mode-left  .inner { align-items: flex-end; }
     .viewport.mode-spine .inner { align-items: flex-start; }
 
+    /* SIDE COLUMNS (bottom-up) */
     .line.left {
       writing-mode: vertical-rl;
       text-orientation: mixed;
@@ -58,6 +66,7 @@
       user-select: none;
     }
 
+    /* CENTER COLUMN (top-down) */
     .line.spine {
       writing-mode: vertical-rl;
       text-orientation: sideways;
@@ -84,40 +93,25 @@
 <body>
   <div class="stage">
 
-    <!-- LEFT RECTANGLE: wider by 25px on each side -->
+    <!-- COLUMN 1 (matches left blue bar in template) -->
     <div class="viewport mode-left"
-      style="
-        left: calc(16.0417% - 25px);
-        top: 7.2222%;
-        width: calc(16.5104% + 50px);
-        height: 86.5741%;
-      ">
+      style="left:16.0417%; top:7.2222%; width:16.5104%; height:86.5741%;">
       <div class="inner">
         <div class="line left"><span id="text1"></span><span class="cursor"></span></div>
       </div>
     </div>
 
-    <!-- CENTER RECTANGLE: shifted 100px to the right -->
+    <!-- CENTER COLUMN (matches middle blue bar) -->
     <div class="viewport mode-spine"
-      style="
-        left: calc(48.9063% + 100px);
-        top: 4.0741%;
-        width: calc(13.8021% + 20px);  /* width from previous request */
-        height: 86.5741%;
-      ">
+      style="left:48.9063%; top:4.0741%; width:13.8021%; height:86.5741%;">
       <div class="inner">
         <div class="line spine"><span id="text2"></span><span class="cursor"></span></div>
       </div>
     </div>
 
-    <!-- RIGHT RECTANGLE: narrower by 15px on each side -->
+    <!-- COLUMN 3 (matches right blue bar) -->
     <div class="viewport mode-left"
-      style="
-        left: calc(76.4583% + 15px);
-        top: 3.7963%;
-        width: calc(16.7708% - 30px);
-        height: 86.5741%;
-      ">
+      style="left:76.4583%; top:3.7963%; width:16.7708%; height:86.5741%;">
       <div class="inner">
         <div class="line left"><span id="text3"></span><span class="cursor"></span></div>
       </div>
@@ -126,57 +120,50 @@
   </div>
 
   <script>
+    /* ===== TEST TEXT ===== */
     const SAMPLE = "The sculpture exists only when unseen.";
 
-    const CHAR_MS = 170,
-          SPACE_MS = 280,
-          COMMA_MS = 520,
-          PERIOD_MS = 1000,
-          DASH_MS = 650;
-
+    const CHAR_MS = 170, SPACE_MS = 280, COMMA_MS = 520, PERIOD_MS = 1000, DASH_MS = 650;
     const BOTTOM_ROOM = 160;
-    const LERP_BASE   = 0.06,
-          LERP_BOOST  = 0.10,
-          LAG_THRESHOLD = 36;
-
+    const LERP_BASE = 0.06, LERP_BOOST = 0.10, LAG_THRESHOLD = 36;
     const REDUCED = matchMedia("(prefers-reduced-motion: reduce)").matches;
 
     function delayFor(ch){
-      if (ch === " ") return CHAR_MS + SPACE_MS;
-      if (/[,\u061B;]/.test(ch)) return CHAR_MS + COMMA_MS;
-      if (/[.!?]/.test(ch))      return CHAR_MS + PERIOD_MS;
-      if (/[\u2013\u2014-]/.test(ch)) return CHAR_MS + DASH_MS;
+      if(ch===" ") return CHAR_MS+SPACE_MS;
+      if(/[,\u061B;]/.test(ch)) return CHAR_MS+COMMA_MS;
+      if(/[.!?]/.test(ch)) return CHAR_MS+PERIOD_MS;
+      if(/[\u2013\u2014-]/.test(ch)) return CHAR_MS+DASH_MS;
       return CHAR_MS;
     }
 
-    function setupColumn(viewport, line, isSpine){
+    // xShift in percent: negativo = verso sinistra, positivo = verso destra
+    function setupColumn(viewport, line, isSpine, xShift){
       const textSpan = line.querySelector("span");
-      let targetY = 0;
-      let currentY = 0;
+
+      let targetY = 0, currentY = 0;
       const chars = [...SAMPLE];
 
       function computeY(){
         const contentH = line.scrollHeight;
-        const viewH    = viewport.clientHeight;
-        const excess   = contentH - (viewH - BOTTOM_ROOM);
+        const viewH = viewport.clientHeight;
+        const allowedH = viewH - BOTTOM_ROOM;
+        const excess = contentH - allowedH;
         targetY = excess > 0 ? -excess : 0;
       }
 
       function applyY(){
         if (isSpine) {
-          line.style.transform = `translateY(${currentY}px)`;
+          // central column: top-down
+          line.style.transform = `translateX(${xShift}%) translateY(${currentY}px)`;
         } else {
-          line.style.transform = `rotate(180deg) translateY(${currentY}px)`;
+          // side columns: bottom-up
+          line.style.transform = `translateX(${xShift}%) rotate(180deg) translateY(${currentY}px)`;
         }
       }
 
       (function animate(){
         requestAnimationFrame(animate);
-        if (REDUCED){
-          currentY = targetY;
-          applyY();
-          return;
-        }
+        if(REDUCED){ currentY = targetY; applyY(); return; }
         const lag = targetY - currentY;
         const ease = Math.abs(lag) > LAG_THRESHOLD ? LERP_BOOST : LERP_BASE;
         currentY += lag * ease;
@@ -190,7 +177,7 @@
 
         let i = 0;
         function type(){
-          if (i >= chars.length){
+          if(i >= chars.length){
             setTimeout(loop, 1200);
             return;
           }
@@ -201,16 +188,21 @@
         }
         setTimeout(type, 600);
       }
-
       loop();
     }
 
-    const v = document.querySelectorAll(".viewport");
-    const l = document.querySelectorAll(".line");
+    const viewports = document.querySelectorAll(".viewport");
+    const lines     = document.querySelectorAll(".line");
 
-    setupColumn(v[0], l[0], false);
-    setupColumn(v[1], l[1], true);
-    setupColumn(v[2], l[2], false);
+    // from left to right:
+    // left column: 20% more to the left
+    setupColumn(viewports[0], lines[0], false, -20);
+
+    // center: 10% more to the right
+    setupColumn(viewports[1], lines[1], true, 10);
+
+    // right: 25% more to the right
+    setupColumn(viewports[2], lines[2], false, 25);
   </script>
 </body>
 </html>
