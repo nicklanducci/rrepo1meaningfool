@@ -77,6 +77,8 @@
       pointer-events:none;
       position:relative;
       z-index:2; /* text above background layer */
+      opacity:1; /* will be toggled in JS */
+      transition: opacity 0.4s linear;
     }
 
     /* side columns: bottom-up, 90px inside from bottom (indent) */
@@ -295,6 +297,14 @@
     setupColumn(vp[2], ln[2], false, 25, -55)   // right column
   ];
 
+  /* Utility: show/hide all text blocks */
+  const inners = document.querySelectorAll('.inner');
+  function setTextVisible(visible){
+    inners.forEach(el => {
+      el.style.opacity = visible ? '1' : '0';
+    });
+  }
+
   /* ===== TRIPTYCH VIDEO LOGIC ===== */
   const VIDEO_SOURCES = [
     "videos/1.mp4",
@@ -350,6 +360,7 @@
 
         videos[0].onended = () => {
           if (i + 1 < order.length) {
+            // immediately start next video – no pause
             playIndex(i + 1);
           } else {
             // sequence done
@@ -358,7 +369,6 @@
               v.removeAttribute('src');
               v.load();
             });
-            setVisible(false);
             if (onComplete) onComplete();
           }
         };
@@ -383,7 +393,8 @@
   /* ===== ORCHESTRATION: TEXT ↔ VIDEOS LOOP ===== */
 
   function startTextPhase(){
-    // text on black: hide videos if any
+    // text on black: show text, hide videos
+    setTextVisible(true);
     if (triptych) triptych.setVisible(false);
 
     // Play text once on all 3 columns.
@@ -402,9 +413,12 @@
       startTextPhase();
       return;
     }
+    // hide text during videos
+    setTextVisible(false);
+
     const order = randomTwoDifferentOrder(); // two different random videos
     triptych.playSequence(order, () => {
-      // when both videos are finished: back to text
+      // when both videos are finished: back to text, videos will be hidden there
       startTextPhase();
     });
   }
@@ -443,4 +457,5 @@
 
 </body>
 </html>
+
 
