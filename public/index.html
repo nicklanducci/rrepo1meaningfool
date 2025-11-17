@@ -44,16 +44,22 @@
       z-index:2;
     }
 
-    /* Background image layer with 30% transparency (opacity 0.7) */
+    /* Background layer (now holds video) */
     .viewport-bg {
       position:absolute;
       inset:0;
-      background-size: cover;
-      background-position: center;
-      background-repeat: no-repeat;
+      background:#000000;
       opacity:0.7;     /* 30% transparent */
       pointer-events:none;
       z-index:1;
+      overflow:hidden;
+    }
+
+    .viewport-bg video {
+      width:100%;
+      height:100%;
+      object-fit:cover;
+      display:block;
     }
 
     .inner {
@@ -140,7 +146,7 @@
        style="left:1438px; top:11px; width:382px; height:995px;"></div>
 
 
-  <!-- BLACK VIEWPORTS WITH IMAGE LAYERS -->
+  <!-- BLACK VIEWPORTS WITH VIDEO LAYERS -->
 
   <!-- LEFT RECTANGLE – 15px taller upwards -->
   <div class="viewport mode-left"
@@ -271,44 +277,59 @@
   setupColumn(vp[1], ln[1], true, 10, 0);     // center column
   setupColumn(vp[2], ln[2], false, 25, -55);  // right column
 
-  /* ===== Background images logic ===== */
-  const IMG_COUNT = 96;
-  const IMG_FOLDER = "images2";
+  /* ===== VIDEO BACKGROUND LOGIC (instead of images) ===== */
+  const VIDEO_SOURCES = [
+    "videos/1.mp4",
+    "videos/2.mp4"
+  ];
 
-  function randomInt(min, max){
-    return Math.floor(Math.random() * (max - min + 1)) + min;
-  }
-
-  function startBackgroundCycle(viewport){
+  function startVideoCycle(viewport){
     const bg = viewport.querySelector('.viewport-bg');
     if (!bg) return;
 
-    let last = 0;
+    const video = document.createElement('video');
+    video.muted = true;
+    video.autoplay = true;
+    video.loop = false;          // we want to change video on end
+    video.playsInline = true;
+    video.setAttribute('playsinline', 'true');
+    video.setAttribute('webkit-playsinline', 'true');
 
-    function cycle(){
-      // Phase 1: 5s black
-      bg.style.backgroundImage = "none";
-      bg.style.backgroundColor = "#000000";
+    bg.appendChild(video);
 
-      // Phase 2: image after 5s
-      setTimeout(() => {
-        let n;
-        do {
-          n = randomInt(1, IMG_COUNT);
-        } while (n === last && IMG_COUNT > 1);
-        last = n;
+    let lastIndex = -1;
 
-        const src = `${IMG_FOLDER}/${n}.jpg?v=${Date.now()}`;
-        bg.style.backgroundImage = `url("${src}")`;
-        bg.style.backgroundColor = "#000000";
-      }, 5000);
+    function pickNextSrc(){
+      let idx = lastIndex;
+      while (idx === lastIndex && VIDEO_SOURCES.length > 1) {
+        idx = Math.floor(Math.random() * VIDEO_SOURCES.length);
+      }
+      if (idx === -1) idx = 0;
+      lastIndex = idx;
+      // cache-buster to avoid stale versions
+      return VIDEO_SOURCES[idx] + "?v=" + Date.now();
     }
 
-    cycle();
-    setInterval(cycle, 20000);
+    function playNext(){
+      video.src = pickNextSrc();
+      video.play().catch(() => {
+        // autoplay may fail on some browsers if not user-initiated
+        // nothing to do; once user interacts, it should start
+      });
+    }
+
+    // when a video ends, pick another random one
+    video.addEventListener('ended', () => {
+      // small black pause before next video (optional)
+      video.removeAttribute('src');
+      video.load();
+      setTimeout(playNext, 1000);
+    });
+
+    playNext();
   }
 
-  vp.forEach(startBackgroundCycle);
+  vp.forEach(startVideoCycle);
 
   /* ===== FRAME COLOR CYCLE (all 3 frames same color) ===== */
   const FRAME_COLORS = ["#ff5958", "#0092a3", "#006cda"];
@@ -341,3 +362,4 @@
 
 </body>
 </html>
+
