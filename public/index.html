@@ -44,7 +44,7 @@
       z-index:2;
     }
 
-    /* Background layer (now holds video) */
+    /* Background layer (now holds video triptych slices) */
     .viewport-bg {
       position:absolute;
       inset:0;
@@ -61,6 +61,11 @@
       object-fit:cover;
       display:block;
     }
+
+    /* Different slices of the same video frame */
+    .viewport-bg.video-left  video { object-position: 0%   center; }
+    .viewport-bg.video-center video { object-position: 50%  center; }
+    .viewport-bg.video-right video { object-position: 100% center; }
 
     .inner {
       width:100%;
@@ -146,12 +151,12 @@
        style="left:1438px; top:11px; width:382px; height:995px;"></div>
 
 
-  <!-- BLACK VIEWPORTS WITH VIDEO LAYERS -->
+  <!-- BLACK VIEWPORTS WITH VIDEO TRIPTYCH LAYERS -->
 
   <!-- LEFT RECTANGLE – 15px taller upwards -->
   <div class="viewport mode-left"
        style="left:302px; top:63px; width:347px; height:950px;">
-    <div class="viewport-bg"></div>
+    <div class="viewport-bg video-left"></div>
     <div class="inner">
       <div class="line left left-big" id="line-left">
         <span id="text1"></span><span class="cursor"></span>
@@ -162,7 +167,7 @@
   <!-- CENTER RECTANGLE -->
   <div class="viewport mode-spine"
        style="left:946px; top:44px; width:275px; height:935px;">
-    <div class="viewport-bg"></div>
+    <div class="viewport-bg video-center"></div>
     <div class="inner">
       <div class="line spine" id="line-center">
         <span id="text2"></span><span class="cursor"></span>
@@ -173,7 +178,7 @@
   <!-- RIGHT RECTANGLE -->
   <div class="viewport mode-left"
        style="left:1468px; top:41px; width:322px; height:935px;">
-    <div class="viewport-bg"></div>
+    <div class="viewport-bg video-right"></div>
 
     <!-- right column extra indent: 90 + 15 = 105px -->
     <div class="inner" style="padding-bottom:105px;">
@@ -277,59 +282,70 @@
   setupColumn(vp[1], ln[1], true, 10, 0);     // center column
   setupColumn(vp[2], ln[2], false, 25, -55);  // right column
 
-  /* ===== VIDEO BACKGROUND LOGIC (instead of images) ===== */
+  /* ===== TRIPTYCH VIDEO LOGIC ===== */
   const VIDEO_SOURCES = [
     "videos/1.mp4",
     "videos/2.mp4"
   ];
 
-  function startVideoCycle(viewport){
-    const bg = viewport.querySelector('.viewport-bg');
-    if (!bg) return;
+  function randomIndex(except) {
+    if (VIDEO_SOURCES.length === 1) return 0;
+    let idx = except;
+    while (idx === except) {
+      idx = Math.floor(Math.random() * VIDEO_SOURCES.length);
+    }
+    return idx;
+  }
 
-    const video = document.createElement('video');
-    video.muted = true;
-    video.autoplay = true;
-    video.loop = false;          // we want to change video on end
-    video.playsInline = true;
-    video.setAttribute('playsinline', 'true');
-    video.setAttribute('webkit-playsinline', 'true');
+  function startTriptychVideo(){
+    const leftBg   = document.querySelector('.viewport-bg.video-left');
+    const centerBg = document.querySelector('.viewport-bg.video-center');
+    const rightBg  = document.querySelector('.viewport-bg.video-right');
+    if (!leftBg || !centerBg || !rightBg) return;
 
-    bg.appendChild(video);
+    const bgs = [leftBg, centerBg, rightBg];
+    const videos = bgs.map(bg => {
+      const v = document.createElement('video');
+      v.muted = true;
+      v.autoplay = true;
+      v.loop = false; // we want to change video at the end
+      v.playsInline = true;
+      v.setAttribute('playsinline', 'true');
+      v.setAttribute('webkit-playsinline', 'true');
+      bg.appendChild(v);
+      return v;
+    });
 
     let lastIndex = -1;
 
-    function pickNextSrc(){
-      let idx = lastIndex;
-      while (idx === lastIndex && VIDEO_SOURCES.length > 1) {
-        idx = Math.floor(Math.random() * VIDEO_SOURCES.length);
-      }
-      if (idx === -1) idx = 0;
+    function setRandomSourceAndPlay() {
+      const idx = randomIndex(lastIndex);
       lastIndex = idx;
-      // cache-buster to avoid stale versions
-      return VIDEO_SOURCES[idx] + "?v=" + Date.now();
-    }
+      const src = VIDEO_SOURCES[idx] + "?v=" + Date.now();
 
-    function playNext(){
-      video.src = pickNextSrc();
-      video.play().catch(() => {
-        // autoplay may fail on some browsers if not user-initiated
-        // nothing to do; once user interacts, it should start
+      // set same src on all three slices
+      videos.forEach(v => {
+        v.src = src;
       });
+
+      // when metadata of the first video is loaded, start all together
+      videos[0].onloadedmetadata = () => {
+        videos.forEach(v => {
+          v.currentTime = 0;
+          v.play().catch(()=>{});
+        });
+      };
     }
 
-    // when a video ends, pick another random one
-    video.addEventListener('ended', () => {
-      // small black pause before next video (optional)
-      video.removeAttribute('src');
-      video.load();
-      setTimeout(playNext, 1000);
+    // when the first video ends, change all 3 to a new random video
+    videos[0].addEventListener('ended', () => {
+      setRandomSourceAndPlay();
     });
 
-    playNext();
+    setRandomSourceAndPlay();
   }
 
-  vp.forEach(startVideoCycle);
+  startTriptychVideo();
 
   /* ===== FRAME COLOR CYCLE (all 3 frames same color) ===== */
   const FRAME_COLORS = ["#ff5958", "#0092a3", "#006cda"];
@@ -362,4 +378,3 @@
 
 </body>
 </html>
-
