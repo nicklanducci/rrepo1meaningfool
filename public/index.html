@@ -46,11 +46,11 @@
       position:absolute;
       inset:0;
       background:#000;
-      opacity:1;               /* video opacity (transparency) */
+      opacity:1;               /* video transparency */
       pointer-events:none;
       z-index:1;
       overflow:hidden;
-      visibility:hidden;       /* hidden during text phase */
+      visibility:hidden;       /* hidden during text */
     }
 
     .viewport-bg video {
@@ -72,7 +72,7 @@
       align-items:flex-start;
       pointer-events:none;
       position:relative;
-      z-index:2;
+      z-index:4;   /* stays above overlay & video */
       opacity:1;
       transition: opacity 0.2s linear;
     }
@@ -113,6 +113,22 @@
     .cursor::after { content:"▌"; }
 
     @keyframes blink { 50% { opacity:0; } }
+
+    /* ================================
+       CENTER VIDEO COVER OVERLAY
+       ================================ */
+    .center-cover {
+      position:absolute;
+      top:0;
+      left:0;
+      width:100%;
+      height:40%; /* amount of coverage */
+      background: url("cover.png") top center / cover no-repeat;
+      opacity:1;
+      pointer-events:none;
+      z-index:3;  /* above video, below text */
+    }
+
   </style>
 </head>
 
@@ -124,7 +140,7 @@
   <div class="frame" style="left:911px; top:14px; width:345px; height:995px;"></div>
   <div class="frame" style="left:1438px; top:11px; width:382px; height:995px;"></div>
 
-  <!-- LEFT -->
+  <!-- LEFT RECTANGLE -->
   <div class="viewport mode-left" style="left:302px; top:63px; width:347px; height:950px;">
     <div class="viewport-bg video-left"></div>
     <div class="inner">
@@ -134,9 +150,13 @@
     </div>
   </div>
 
-  <!-- CENTER -->
+  <!-- CENTER RECTANGLE -->
   <div class="viewport mode-spine" style="left:946px; top:44px; width:275px; height:935px;">
     <div class="viewport-bg video-center"></div>
+
+    <!-- NEW OVERLAY ADDED HERE -->
+    <div class="center-cover"></div>
+
     <div class="inner">
       <div class="line spine" id="line-center">
         <span id="text2"></span><span class="cursor"></span>
@@ -144,7 +164,7 @@
     </div>
   </div>
 
-  <!-- RIGHT -->
+  <!-- RIGHT RECTANGLE -->
   <div class="viewport mode-left" style="left:1468px; top:41px; width:322px; height:935px;">
     <div class="viewport-bg video-right"></div>
     <div class="inner" style="padding-bottom:105px;">
@@ -162,9 +182,8 @@
 const SAMPLE = " The sculpture exists only when unseen.";
 
 const CHAR_MS=170, SPACE_MS=280, COMMA_MS=520, PERIOD_MS=1000, DASH_MS=650;
-const BOTTOM_ROOM = 160;
+const BOTTOM_ROOM=160;
 const LERP_BASE=0.06, LERP_BOOST=0.10, LAG_THRESHOLD=36;
-const REDUCED = matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 function delayFor(ch){
   if(ch===" ") return CHAR_MS+SPACE_MS;
@@ -174,12 +193,12 @@ function delayFor(ch){
   return CHAR_MS;
 }
 
-function setupColumn(viewport, line, isSpine, shiftPercent, shiftPx){
-  const textSpan = line.querySelector("span");
+function setupColumn(viewport, line, isSpine, percent, px){
+  const span=line.querySelector("span");
   let targetY=0, currentY=0;
   const chars=[...SAMPLE];
 
-  function computeY(){
+  function compute(){
     const contentH=line.scrollHeight;
     const viewH=viewport.clientHeight;
     const allowed=viewH - BOTTOM_ROOM;
@@ -187,42 +206,39 @@ function setupColumn(viewport, line, isSpine, shiftPercent, shiftPx){
     targetY = excess>0 ? -excess : 0;
   }
 
-  function applyY(){
-    const shiftX = `calc(${shiftPercent}% + ${shiftPx}px)`;
+  function apply(){
+    const shiftX=`calc(${percent}% + ${px}px)`;
     if(isSpine){
-      line.style.transform = `translateX(${shiftX}) translateY(${currentY}px)`;
+      line.style.transform=`translateX(${shiftX}) translateY(${currentY}px)`;
     } else {
-      line.style.transform =
+      line.style.transform=
         `translateX(${shiftX}) rotate(180deg) translateY(${currentY}px)`;
     }
   }
 
   (function anim(){
     requestAnimationFrame(anim);
-    if(REDUCED){ currentY=targetY; applyY(); return; }
-    const lag = targetY-currentY;
-    const ease = Math.abs(lag)>LAG_THRESHOLD ? LERP_BOOST : LERP_BASE;
+    const lag=targetY-currentY;
+    const ease=Math.abs(lag)>LAG_THRESHOLD?LERP_BOOST:LERP_BASE;
     currentY += lag * ease;
-    applyY();
+    apply();
   })();
 
-  function reset(){
-    targetY=0; currentY=0; applyY();
-  }
+  function reset(){ targetY=0; currentY=0; apply(); }
 
-  function playOnce(onDone){
-    textSpan.textContent="";
+  function playOnce(done){
+    span.textContent="";
     reset();
     let i=0;
 
     function type(){
       if(i>=chars.length){
-        if(onDone) onDone();
+        if(done) done();
         return;
       }
       const ch=chars[i++];
-      textSpan.textContent+=ch;
-      computeY();
+      span.textContent+=ch;
+      compute();
       setTimeout(type, delayFor(ch));
     }
     setTimeout(type,600);
@@ -231,7 +247,7 @@ function setupColumn(viewport, line, isSpine, shiftPercent, shiftPx){
   return { playOnce };
 }
 
-/* init columns */
+/* INIT COLUMNS */
 const vps=document.querySelectorAll(".viewport");
 const lns=document.querySelectorAll(".line");
 
@@ -248,8 +264,7 @@ function setTextVisible(v){
 
 /* =============== VIDEO LOGIC (TRIPTYCH, 1 RANDOM VIDEO) =============== */
 
-/* 40 videos: videos/1.mp4 ... videos/40.mp4 */
-const VIDEO_SOURCES = Array.from({length:40}, (_,i) => `videos/${i+1}.mp4`);
+const VIDEO_SOURCES = Array.from({length:40}, (_,i)=>`videos/${i+1}.mp4`);
 
 function initTriptych(){
   const left=document.querySelector('.viewport-bg.video-left');
@@ -259,8 +274,11 @@ function initTriptych(){
   const bgs=[left,center,right];
   const videos=bgs.map(bg=>{
     const v=document.createElement("video");
-    v.muted=true; v.autoplay=false; v.loop=false;
-    v.playsInline=true; v.setAttribute("playsinline","true");
+    v.muted=true;
+    v.loop=false;
+    v.autoplay=false;
+    v.playsInline=true;
+    v.setAttribute("playsinline","true");
     v.setAttribute("webkit-playsinline","true");
     bg.appendChild(v);
     return v;
@@ -270,25 +288,23 @@ function initTriptych(){
     bgs.forEach(bg=>bg.style.visibility=v?"visible":"hidden");
   }
 
-  // Play ONE random video once, then call done()
   function playRandom(done){
     const index = Math.floor(Math.random()*VIDEO_SOURCES.length);
-    const src   = VIDEO_SOURCES[index] + "?v=" + Date.now();
+    const src = VIDEO_SOURCES[index] + "?v=" + Date.now();
 
     videos.forEach(v=>v.src = src);
 
-    videos[0].onloadedmetadata = () => {
-      // exact moment video starts: hide text, show video
+    videos[0].onloadedmetadata = ()=>{
       setTextVisible(false);
       setVisible(true);
 
       videos.forEach(v=>{
-        v.currentTime = 0;
+        v.currentTime=0;
         v.play().catch(()=>{});
       });
     };
 
-    videos[0].onended = () => {
+    videos[0].onended = ()=>{
       videos.forEach(v=>{
         v.pause();
         v.removeAttribute("src");
@@ -309,21 +325,15 @@ const triptych = initTriptych();
 function startTextPhase(){
   setTextVisible(true);
 
-  // left column is the "master" for timing
   columns[0].playOnce(()=>{
-    // keep your 1s pause between text end and video start
     setTimeout(startVideoPhase,1000);
   });
+
   columns[1].playOnce();
   columns[2].playOnce();
 }
 
 function startVideoPhase(){
-  if(!triptych){
-    startTextPhase();
-    return;
-  }
-  // play ONE random video, then back to text
   triptych.playRandom(()=>startTextPhase());
 }
 
@@ -333,10 +343,11 @@ startTextPhase();
 const FRAME_COLORS=["#ff5958","#0092a3","#006cda"];
 let idx=0;
 setInterval(()=>{
-  idx = (idx+1)%3;
+  idx=(idx+1)%3;
   document.querySelectorAll('.frame')
     .forEach(f=>f.style.backgroundColor=FRAME_COLORS[idx]);
 },60000);
+
 </script>
 </body>
 </html>
