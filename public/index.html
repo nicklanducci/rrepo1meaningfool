@@ -46,11 +46,11 @@
       position:absolute;
       inset:0;
       background:#000;
-      opacity:0.7;
+      opacity:1;               /* video opacity (transparency) */
       pointer-events:none;
       z-index:1;
       overflow:hidden;
-      visibility:hidden;
+      visibility:hidden;       /* hidden during text phase */
     }
 
     .viewport-bg video {
@@ -246,9 +246,10 @@ function setTextVisible(v){
   inners.forEach(el=>el.style.opacity=v?1:0);
 }
 
-/* =============== VIDEO LOGIC (TRIPTYCH) =============== */
+/* =============== VIDEO LOGIC (TRIPTYCH, 1 RANDOM VIDEO) =============== */
 
-const VIDEO_SOURCES=["videos/1.mp4", "videos/2.mp4"];
+/* 40 videos: videos/1.mp4 ... videos/40.mp4 */
+const VIDEO_SOURCES = Array.from({length:40}, (_,i) => `videos/${i+1}.mp4`);
 
 function initTriptych(){
   const left=document.querySelector('.viewport-bg.video-left');
@@ -269,56 +270,48 @@ function initTriptych(){
     bgs.forEach(bg=>bg.style.visibility=v?"visible":"hidden");
   }
 
-  function playSequence(order,done){
-    let index=0;
+  // Play ONE random video once, then call done()
+  function playRandom(done){
+    const index = Math.floor(Math.random()*VIDEO_SOURCES.length);
+    const src   = VIDEO_SOURCES[index] + "?v=" + Date.now();
 
-    function play(i){
-      const src=VIDEO_SOURCES[order[i]]+"?v="+Date.now();
-      videos.forEach(v=>v.src=src);
+    videos.forEach(v=>v.src = src);
 
-      videos[0].onloadedmetadata=()=>{
-        /* ← the EXACT moment video starts */
-        setTextVisible(false);
-        setVisible(true);
+    videos[0].onloadedmetadata = () => {
+      // exact moment video starts: hide text, show video
+      setTextVisible(false);
+      setVisible(true);
 
-        videos.forEach(v=>{
-          v.currentTime=0;
-          v.play().catch(()=>{});
-        });
-      };
+      videos.forEach(v=>{
+        v.currentTime = 0;
+        v.play().catch(()=>{});
+      });
+    };
 
-      videos[0].onended=()=>{
-        if(i+1<order.length){
-          play(i+1);
-        } else {
-          videos.forEach(v=>{
-            v.pause(); v.removeAttribute("src"); v.load();
-          });
-          setVisible(false);
-          if(done) done();
-        }
-      };
-    }
-
-    play(index);
+    videos[0].onended = () => {
+      videos.forEach(v=>{
+        v.pause();
+        v.removeAttribute("src");
+        v.load();
+      });
+      setVisible(false);
+      if(done) done();
+    };
   }
 
-  return { playSequence };
+  return { playRandom };
 }
 
 const triptych = initTriptych();
-
-function randomOrder(){
-  const first = Math.round(Math.random());
-  return [first, first===0?1:0];
-}
 
 /* =============== ORCHESTRATION =============== */
 
 function startTextPhase(){
   setTextVisible(true);
 
+  // left column is the "master" for timing
   columns[0].playOnce(()=>{
+    // keep your 1s pause between text end and video start
     setTimeout(startVideoPhase,1000);
   });
   columns[1].playOnce();
@@ -326,12 +319,15 @@ function startTextPhase(){
 }
 
 function startVideoPhase(){
-  const order = randomOrder();
-  triptych.playSequence(order, ()=>startTextPhase());
+  if(!triptych){
+    startTextPhase();
+    return;
+  }
+  // play ONE random video, then back to text
+  triptych.playRandom(()=>startTextPhase());
 }
 
 startTextPhase();
-
 
 /* FRAME COLORS */
 const FRAME_COLORS=["#ff5958","#0092a3","#006cda"];
@@ -341,8 +337,6 @@ setInterval(()=>{
   document.querySelectorAll('.frame')
     .forEach(f=>f.style.backgroundColor=FRAME_COLORS[idx]);
 },60000);
-
 </script>
 </body>
 </html>
-
