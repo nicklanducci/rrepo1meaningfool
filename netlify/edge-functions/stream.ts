@@ -1,110 +1,78 @@
 // netlify/edge-functions/stream.ts
-// Returns ONE conceptual sentence as JSON: { sentence: "..." }
-// Requires: OPENAI_API_KEY (and optionally OPENAI_ORG_ID) in Netlify env.
+// Calls your OpenAI Assistant and returns ONE sentence: { sentence: "..." }
 
 export default async (req: Request) => {
-  const url = new URL(req.url);
-
   const key = Deno.env.get("OPENAI_API_KEY") || "";
-  const org = Deno.env.get("OPENAI_ORG_ID") || ""; // optional
+  const org = Deno.env.get("OPENAI_ORG_ID") || "";
+  const assistantId = Deno.env.get("OPENAI_ASSISTANT_ID") || ""; // <-- ADD THIS IN NETLIFY ENV
 
-  const prompt =
-    url.searchParams.get("prompt") ??
-    "make a contradictory short sentence composed by two atomic propositions about art and its essence and give me only the sentence";
-
-  if (!key) {
+  if (!key || !assistantId) {
     return new Response(
-      JSON.stringify({ error: "Missing OPENAI_API_KEY" }),
+      JSON.stringify({ error: "Missing OPENAI_API_KEY or OPENAI_ASSISTANT_ID" }),
       {
         status: 500,
-        headers: {
-          "Content-Type": "application/json",
-          "Access-Control-Allow-Origin": "*",
-        },
+        headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" },
       }
     );
   }
 
-  const headers: Record<string, string> = {
-    Authorization: `Bearer ${key}`,
+  const headers: Record<string,string> = {
+    "Authorization": `Bearer ${key}`,
     "Content-Type": "application/json",
+    "OpenAI-Beta": "assistants=v2",
   };
   if (org) headers["OpenAI-Organization"] = org;
 
-  const systemInstruction =
-    "ake a contradictory short sentence composed by two atomic propositions about art and its essence." +
-    "Here are some examples: " +
-    "A monochrome surface contains every color. " +
-    "The sculpture exists only when unseen. " +
-    "The drawing erases itself as it is made. " +
-    "A closed space which remains fully accessible. " +
-    "The work changes only when it stays the same. " +
-    "The empty frame completes the image. " +
-    "A straight line bends around itself. " +
-    "The material is immaterial. " +
-    "The visible part is entirely hidden. " +
-    "The origin is located in the future. " +
-    "Generate only one short sentence.";
+  // 1. Create a thread
+  const threadRes = await fetch("https://api.openai.com/v1/threads", {
+    method: "POST",
+    headers,
+    body: JSON.stringify({})
+  });
+  const thread = await threadRes.json();
+  const threadId = thread.id;
 
-  // 🔥 VERSIONE A COSTO RIDOTTISSIMO
-  const model = "gpt-4.1-mini";
+  // 2. Add the user message (VERY SHORT!)
+  await fetch(`https://api.openai.com/v1/threads/${threadId}/messages`, {
+    method: "POST",
+    headers,
+    body: JSON.stringify({
+      role: "user",
+      content: "Generate one sentence."
+    })
+  });
 
-  let upstream: Response;
-  try {
-    upstream = await fetch("https://api.openai.com/v1/responses", {
-      method: "POST",
-      headers,
-      body: JSON.stringify({
-        model,
-        input: [
-          { role: "system", content: systemInstruction },
-          { role: "user", content: prompt },
-        ],
-        stream: false,
-        max_output_tokens: 80,
-      }),
-    });
-  } catch (e) {
-    return new Response(
-      JSON.stringify({ error: `Network error: ${String(e)}` }),
-      {
-        status: 502,
-        headers: {
-          "Content-Type": "application/json",
-          "Access-Control-Allow-Origin": "*",
-        },
-      }
+  // 3. Run the assistant
+  const runRes = await fetch(`https://api.openai.com/v1/threads/${threadId}/runs`, {
+    method: "POST",
+    headers,
+    body: JSON.stringify({ assistant_id: assistantId })
+  });
+  const run = await runRes.json();
+  const runId = run.id;
+
+  // 4. Poll until completion
+  let status = run.status;
+  while (status === "queued" || status === "in_progress") {
+    await new Promise(r => setTimeout(r, 300));
+    const check = await fetch(
+      `https://api.openai.com/v1/threads/${threadId}/runs/${runId}`,
+      { headers }
     );
+    const checkData = await check.json();
+    status = checkData.status;
   }
 
-  if (!upstream.ok) {
-    const text = await upstream.text().catch(() => "");
-    return new Response(
-      JSON.stringify({
-        error: `Upstream error ${upstream.status}: ${text}`,
-      }),
-      {
-        status: upstream.status,
-        headers: {
-          "Content-Type": "application/json",
-          "Access-Control-Allow-Origin": "*",
-        },
-      }
-    );
-  }
+  // 5. Get the messages
+  const msgsRes = await fetch(
+    `https://api.openai.com/v1/threads/${threadId}/messages`,
+    { headers }
+  );
+  const msgs = await msgsRes.json();
 
-  const data = await upstream.json().catch(() => ({} as any));
-
-  // Responses API: data.output[0].content[0].text
-  const sentenceRaw =
-    data?.output?.[0]?.content?.[0]?.text ??
+  const sentence =
+    msgs.data?.[0]?.content?.[0]?.text?.value ??
     "A monochrome surface contains every color.";
-
-  let sentence = String(sentenceRaw).trim();
-
-  if (!/[.!?…]$/.test(sentence)) {
-    sentence += ".";
-  }
 
   return new Response(JSON.stringify({ sentence }), {
     status: 200,
@@ -116,7 +84,3 @@ export default async (req: Request) => {
 };
 
 export const config = { path: "/stream" };
-
-
-
-
