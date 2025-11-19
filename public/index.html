@@ -50,7 +50,7 @@
       pointer-events:none;
       z-index:1;
       overflow:hidden;
-      visibility:hidden; /* hidden during text phase */
+      visibility:hidden;
     }
 
     .viewport-bg video {
@@ -72,7 +72,7 @@
       align-items:flex-start;
       pointer-events:none;
       position:relative;
-      z-index:4;   /* text always above video + gradient */
+      z-index:4;
       opacity:1;
       transition: opacity 0.2s linear;
     }
@@ -114,24 +114,20 @@
 
     @keyframes blink { 50% { opacity:0; } }
 
-    /* =====================================
-       GRADIENT LAYER ON CENTER VIDEO
-       ===================================== */
     .center-cover {
       position:absolute;
       top:0;
       left:0;
       width:100%;
-      height:400px; /* gradient height */
+      height:400px;
       background: linear-gradient(
         to bottom,
         rgba(0,0,0,1),
         rgba(0,0,0,0)
       );
       pointer-events:none;
-      z-index:3; /* above video, below text */
+      z-index:3;
     }
-
   </style>
 </head>
 
@@ -156,10 +152,7 @@
   <!-- CENTER RECTANGLE -->
   <div class="viewport mode-spine" style="left:946px; top:44px; width:275px; height:935px;">
     <div class="viewport-bg video-center"></div>
-
-    <!-- GRADIENT OVERLAY -->
     <div class="center-cover"></div>
-
     <div class="inner">
       <div class="line spine" id="line-center">
         <span id="text2"></span><span class="cursor"></span>
@@ -180,158 +173,132 @@
 </div>
 
 <script>
-/* =============== TEXT LOGIC (VIA EDGE FUNCTION /stream) =============== */
+/* =============== TEXT VIA /stream + PREFETCH =============== */
 
-const CHAR_MS   = 170,
-      SPACE_MS  = 280,
-      COMMA_MS  = 520,
-      PERIOD_MS = 1000,
-      DASH_MS   = 650;
+const CHAR_MS=170, SPACE_MS=280, COMMA_MS=520, PERIOD_MS=1000, DASH_MS=650;
+const BOTTOM_ROOM=160;
+const LERP_BASE=0.06, LERP_BOOST=0.10, LAG_THRESHOLD=36;
 
-const BOTTOM_ROOM = 160;
-const LERP_BASE   = 0.06,
-      LERP_BOOST  = 0.10,
-      LAG_THRESHOLD = 36;
-
-// Chiamata alla Netlify Edge Function /stream
 async function fetchSentence(){
   try {
-    const res = await fetch("/stream", { method: "GET" });
-
-    if (!res.ok) throw new Error("Bad response");
-
+    const res = await fetch("/stream");
     const data = await res.json();
     let text = (data.sentence || data.text || "").trim();
-
-    // fallback se vuoto
     if (!text) text = "A monochrome surface contains every color.";
-
-    // assicuriamoci che chiuda con punteggiatura
     if (!/[.!?…]$/.test(text)) text += ".";
-
-    // spazio iniziale per estetica
     return " " + text;
-
-  } catch (err) {
-    console.error("API sentence error:", err);
-    // fallback totale
+  } catch (e) {
     return " A monochrome surface contains every color.";
   }
 }
 
 function delayFor(ch){
-  if (ch === " ") return CHAR_MS + SPACE_MS;
-  if (/[,\u061B;]/.test(ch)) return CHAR_MS + COMMA_MS;
-  if (/[.!?]/.test(ch)) return CHAR_MS + PERIOD_MS;
-  if (/[\u2013\u2014-]/.test(ch)) return CHAR_MS + DASH_MS;
+  if(ch===" ") return CHAR_MS+SPACE_MS;
+  if(/[,\u061B;]/.test(ch)) return CHAR_MS+COMMA_MS;
+  if(/[.!?]/.test(ch)) return CHAR_MS+PERIOD_MS;
+  if(/[\u2013\u2014-]/.test(ch)) return CHAR_MS+DASH_MS;
   return CHAR_MS;
 }
 
-function setupColumn(viewport, line, isSpine, percent, px){
+function setupColumn(viewport,line,isSpine,percent,px){
   const span = line.querySelector("span");
-  let targetY = 0, currentY = 0;
-  let chars = [];
+  let targetY=0,currentY=0;
 
   function compute(){
-    const contentH = line.scrollHeight;
-    const viewH    = viewport.clientHeight;
-    const allowed  = viewH - BOTTOM_ROOM;
-    const excess   = contentH - allowed;
-    targetY = excess > 0 ? -excess : 0;
+    const contentH=line.scrollHeight;
+    const viewH=viewport.clientHeight;
+    const allowed=viewH - BOTTOM_ROOM;
+    const excess=contentH - allowed;
+    targetY = excess>0 ? -excess : 0;
   }
 
   function apply(){
-    const shiftX = `calc(${percent}% + ${px}px)`;
-    if (isSpine){
-      line.style.transform = `translateX(${shiftX}) translateY(${currentY}px)`;
+    const shiftX=`calc(${percent}% + ${px}px)`;
+    if(isSpine){
+      line.style.transform=`translateX(${shiftX}) translateY(${currentY}px)`;
     } else {
-      line.style.transform =
+      line.style.transform=
         `translateX(${shiftX}) rotate(180deg) translateY(${currentY}px)`;
     }
   }
 
   (function anim(){
     requestAnimationFrame(anim);
-    const lag  = targetY - currentY;
-    const ease = Math.abs(lag) > LAG_THRESHOLD ? LERP_BOOST : LERP_BASE;
-    currentY  += lag * ease;
+    const lag=targetY - currentY;
+    const ease=Math.abs(lag)>LAG_THRESHOLD ? LERP_BOOST : LERP_BASE;
+    currentY += lag * ease;
     apply();
   })();
 
-  function reset(){ targetY = 0; currentY = 0; apply(); }
+  function reset(){ targetY=0; currentY=0; apply(); }
 
-  function playOnce(text, done){
-    chars = [...text];
-    span.textContent = "";
+  function playOnce(text,done){
+    span.textContent="";
     reset();
-    let i = 0;
-
+    const chars=[...text];
+    let i=0;
     function type(){
-      if (i >= chars.length){
-        if (done) done();
-        return;
-      }
-      const ch = chars[i++];
-      span.textContent += ch;
+      if(i>=chars.length){ if(done) done(); return; }
+      const ch=chars[i++];
+      span.textContent+=ch;
       compute();
       setTimeout(type, delayFor(ch));
     }
-    setTimeout(type, 600);
+    setTimeout(type,600);
   }
 
   return { playOnce };
 }
 
-/* INIT COLUMNS */
-const vps = document.querySelectorAll(".viewport");
-const lns = document.querySelectorAll(".line");
-
-const columns = [
-  setupColumn(vps[0], lns[0], false, -20, 25),
-  setupColumn(vps[1], lns[1], true, 10, 0),
-  setupColumn(vps[2], lns[2], false, 25, -55),
+const vps=document.querySelectorAll(".viewport");
+const lns=document.querySelectorAll(".line");
+const columns=[
+  setupColumn(vps[0],lns[0],false,-20,25),
+  setupColumn(vps[1],lns[1],true,10,0),
+  setupColumn(vps[2],lns[2],false,25,-55),
 ];
 
-const inners = document.querySelectorAll(".inner");
+const inners=document.querySelectorAll(".inner");
 function setTextVisible(v){
-  inners.forEach(el => el.style.opacity = v ? 1 : 0);
+  inners.forEach(el=>el.style.opacity=v?1:0);
 }
 
-/* =============== VIDEO LOGIC (1 RANDOM TRIPTYCH VIDEO, NO REPEAT UNTIL 40 USED) =============== */
+function clearTextSpans(){
+  document.getElementById("text1").textContent="";
+  document.getElementById("text2").textContent="";
+  document.getElementById("text3").textContent="";
+}
 
-const VIDEO_SOURCES = Array.from({length:40}, (_,i)=>`videos/${i+1}.mp4`);
+let bufferedSentence=null;
 
-// pool di indici 0..39, consumati random, poi refill
-let videoPool      = VIDEO_SOURCES.map((_,i)=>i);
-let lastVideoIndex = -1;
+/* =============== VIDEO LOGIC =============== */
+
+const VIDEO_SOURCES=Array.from({length:40},(_,i)=>`videos/${i+1}.mp4`);
+let videoPool=VIDEO_SOURCES.map((_,i)=>i);
+let lastVideoIndex=-1;
 
 function pickVideoIndex(){
-  if (videoPool.length === 0) {
-    videoPool = VIDEO_SOURCES.map((_,i)=>i);
-  }
-  let idx, poolIndex;
-  do {
-    poolIndex = Math.floor(Math.random()*videoPool.length);
-    idx       = videoPool[poolIndex];
-  } while (idx === lastVideoIndex && VIDEO_SOURCES.length > 1 && videoPool.length > 1);
-
-  videoPool.splice(poolIndex, 1);
-  lastVideoIndex = idx;
+  if(videoPool.length===0) videoPool=VIDEO_SOURCES.map((_,i)=>i);
+  let idx,poolIndex;
+  do{
+    poolIndex=Math.floor(Math.random()*videoPool.length);
+    idx=videoPool[poolIndex];
+  } while(idx===lastVideoIndex && VIDEO_SOURCES.length>1 && videoPool.length>1);
+  videoPool.splice(poolIndex,1);
+  lastVideoIndex=idx;
   return idx;
 }
 
 function initTriptych(){
-  const left   = document.querySelector('.viewport-bg.video-left');
-  const center = document.querySelector('.viewport-bg.video-center');
-  const right  = document.querySelector('.viewport-bg.video-right');
+  const left=document.querySelector('.viewport-bg.video-left');
+  const center=document.querySelector('.viewport-bg.video-center');
+  const right=document.querySelector('.viewport-bg.video-right');
 
-  const bgs = [left, center, right];
-  const videos = bgs.map(bg=>{
-    const v = document.createElement("video");
-    v.muted = true;
-    v.loop  = false;
-    v.autoplay = false;
-    v.playsInline = true;
+  const bgs=[left,center,right];
+  const videos=bgs.map(bg=>{
+    const v=document.createElement("video");
+    v.muted=true; v.loop=false; v.autoplay=false;
+    v.playsInline=true;
     v.setAttribute("playsinline","true");
     v.setAttribute("webkit-playsinline","true");
     bg.appendChild(v);
@@ -339,65 +306,65 @@ function initTriptych(){
   });
 
   function setVisible(v){
-    bgs.forEach(bg=>bg.style.visibility = v ? "visible" : "hidden");
+    bgs.forEach(bg=>bg.style.visibility=v?"visible":"hidden");
   }
 
   function playRandom(done){
-    const index = pickVideoIndex();
-    const src   = VIDEO_SOURCES[index] + "?v=" + Date.now();
+    const index=pickVideoIndex();
+    const src=VIDEO_SOURCES[index]+"?v="+Date.now();
 
-    // assegna sorgenti
     videos.forEach(v=>{
-      v.onloadeddata = null;
-      v.src = src;
+      v.onloadeddata=null;
+      v.src=src;
     });
 
-    let readyCount = 0;
-
+    let readyCount=0;
     videos.forEach(v=>{
-      v.onloadeddata = () => {
+      v.onloadeddata=()=>{
         readyCount++;
-        if (readyCount === videos.length) {
-          // tutte e tre pronte -> play insieme
+        if(readyCount===videos.length){
           setTextVisible(false);
           setVisible(true);
           videos.forEach(v2=>{
-            v2.currentTime = 0;
+            v2.currentTime=0;
             v2.play().catch(()=>{});
           });
         }
       };
     });
 
-    videos[0].onended = () => {
+    videos[0].onended=()=>{
       videos.forEach(v=>{
-        v.pause();
-        v.removeAttribute("src");
-        v.load();
+        v.pause(); v.removeAttribute("src"); v.load();
       });
       setVisible(false);
-      if (done) done();
+      if(done) done();
     };
   }
 
   return { playRandom };
 }
 
-const triptych = initTriptych();
+const triptych=initTriptych();
 
 /* =============== ORCHESTRATION =============== */
 
 function startVideoPhase(){
+  bufferedSentence=null;
+  fetchSentence().then(s=>bufferedSentence=s).catch(()=>{});
   triptych.playRandom(()=>startTextPhase());
 }
 
 async function startTextPhase(){
+  clearTextSpans();
   setTextVisible(true);
 
-  const sentence = await fetchSentence(); // stessa frase per tutte e 3
+  let sentence=bufferedSentence;
+  bufferedSentence=null;
+  if(!sentence) sentence=await fetchSentence();
 
-  columns[0].playOnce(sentence, ()=>{
-    setTimeout(startVideoPhase, 1000);
+  columns[0].playOnce(sentence,()=>{
+    setTimeout(startVideoPhase,1000);
   });
   columns[1].playOnce(sentence);
   columns[2].playOnce(sentence);
@@ -406,14 +373,15 @@ async function startTextPhase(){
 startTextPhase();
 
 /* FRAME COLORS */
-const FRAME_COLORS = ["#ff5958","#0092a3","#006cda"];
-let frameIdx = 0;
+const FRAME_COLORS=["#ff5958","#0092a3","#006cda"];
+let idx=0;
 setInterval(()=>{
-  frameIdx = (frameIdx+1)%3;
+  idx=(idx+1)%3;
   document.querySelectorAll('.frame')
-    .forEach(f=>f.style.backgroundColor = FRAME_COLORS[frameIdx]);
+    .forEach(f=>f.style.backgroundColor=FRAME_COLORS[idx]);
 }, 60000);
 </script>
 </body>
 </html>
+
 
