@@ -91,4 +91,5 @@ export default async (req: Request) => {
   });
 };
 
-export const config = { path: "/sentence" };
+export const config = { path: "/stream" };
+
