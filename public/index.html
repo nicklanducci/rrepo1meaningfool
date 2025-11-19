@@ -46,11 +46,11 @@
       position:absolute;
       inset:0;
       background:#000;
-      opacity:1;               /* video transparency */
+      opacity:1;
       pointer-events:none;
       z-index:1;
       overflow:hidden;
-      visibility:hidden;       /* hidden during text */
+      visibility:hidden;
     }
 
     .viewport-bg video {
@@ -72,7 +72,7 @@
       align-items:flex-start;
       pointer-events:none;
       position:relative;
-      z-index:4;   /* stays above overlay & video */
+      z-index:4;   /* text always above video + gradient */
       opacity:1;
       transition: opacity 0.2s linear;
     }
@@ -114,19 +114,22 @@
 
     @keyframes blink { 50% { opacity:0; } }
 
-    /* ================================
-       CENTER VIDEO COVER OVERLAY
-       ================================ */
+    /* =====================================
+       GRADIENT LAYER ON CENTER VIDEO
+       ===================================== */
     .center-cover {
       position:absolute;
       top:0;
       left:0;
       width:100%;
-      height:40%; /* amount of coverage */
-      background: url("cover.png") top center / cover no-repeat;
-      opacity:1;
+      height:400px; /* gradient height */
+      background: linear-gradient(
+        to bottom,
+        rgba(0,0,0,1),
+        rgba(0,0,0,0)
+      );
       pointer-events:none;
-      z-index:3;  /* above video, below text */
+      z-index:3; /* above video, below text */
     }
 
   </style>
@@ -154,7 +157,7 @@
   <div class="viewport mode-spine" style="left:946px; top:44px; width:275px; height:935px;">
     <div class="viewport-bg video-center"></div>
 
-    <!-- NEW OVERLAY ADDED HERE -->
+    <!-- 🔥 NEW GRADIENT OVERLAY -->
     <div class="center-cover"></div>
 
     <div class="inner">
@@ -262,7 +265,7 @@ function setTextVisible(v){
   inners.forEach(el=>el.style.opacity=v?1:0);
 }
 
-/* =============== VIDEO LOGIC (TRIPTYCH, 1 RANDOM VIDEO) =============== */
+/* =============== VIDEO LOGIC (1 RANDOM TRIPTYCH VIDEO) =============== */
 
 const VIDEO_SOURCES = Array.from({length:40}, (_,i)=>`videos/${i+1}.mp4`);
 
@@ -351,3 +354,4 @@ setInterval(()=>{
 </script>
 </body>
 </html>
+
