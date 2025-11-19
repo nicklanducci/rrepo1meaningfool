@@ -101,7 +101,7 @@
       transform: translateY(0);
     }
 
-    .line.left-big { font-size: clamp(28px, 7.2vw, 144px); }
+    .line.left-big  { font-size: clamp(28px, 7.2vw, 144px); }
     .line.right-big { font-size: clamp(28px, 6.3vw, 126px); }
 
     .cursor {
@@ -180,89 +180,50 @@
 </div>
 
 <script>
-/* ========== SENTENCE SYSTEM ========== */
+/* =============== TEXT LOGIC (VIA EDGE FUNCTION /stream) =============== */
 
-const SENTENCES = [
-  "A monochrome surface contains every color.",
-  "The sculpture exists only when unseen.",
-  "This drawing erases itself as it is made.",
-  "A closed space remains fully accessible.",
-  "The work changes only when it stays the same.",
-  "A single point covers the whole wall.",
-  "The empty frame completes the image.",
-  "This photograph depicts what cannot be photographed.",
-  "A straight line bends around itself.",
-  "The title describes what the work is not.",
-  "The installation expands by being removed.",
-  "The material is immaterial.",
-  "The visible part is entirely hidden.",
-  "This performance occurs without happening.",
-  "The original is identical to its copy.",
-  "The floor is suspended from the ceiling.",
-  "The text reads what is not written.",
-  "This object is heavier than itself.",
-  "The audience completes a work that is already finished.",
-  "The concept exists without being conceived.",
-  "Every mark on the page is blank.",
-  "The frame surrounds nothing and contains everything.",
-  "This wall holds the absence of a wall.",
-  "The map precedes the territory it represents.",
-  "The sound is louder than silence.",
-  "The boundary extends beyond the space it encloses.",
-  "This image is smaller than its detail.",
-  "The negative space occupies more than the object.",
-  "A permanent work exists only temporarily.",
-  "The paper is folded without being bent.",
-  "This video plays without being recorded.",
-  "The shape is defined by what it excludes.",
-  "A fixed position moves continuously.",
-  "The idea is finished when it begins.",
-  "The center lies outside the work.",
-  "This space is both empty and full.",
-  "The label refers to something else.",
-  "The work exists only as its documentation.",
-  "The line has no length but extends infinitely.",
-  "The image is composed entirely of what is missing.",
-  "The projection illuminates darkness without light.",
-  "This floor plan describes a different building.",
-  "The sculpture is made entirely of nothing.",
-  "The performance lasts forever and ends immediately.",
-  "The origin is located in the future.",
-  "The work belongs to everyone and to no one.",
-  "The sequence begins at its conclusion.",
-  "This surface is both opaque and transparent.",
-  "The volume is silent and filled with sound.",
-  "The act of looking removes the work from view."
-];
+const CHAR_MS   = 170,
+      SPACE_MS  = 280,
+      COMMA_MS  = 520,
+      PERIOD_MS = 1000,
+      DASH_MS   = 650;
 
-let sentencePool = [...SENTENCES];
-let currentSentence = "";
+const BOTTOM_ROOM = 160;
+const LERP_BASE   = 0.06,
+      LERP_BOOST  = 0.10,
+      LAG_THRESHOLD = 36;
 
-function pickSentence() {
-  if (sentencePool.length === 0) {
-    sentencePool = [...SENTENCES];
+// Chiamata alla Netlify Edge Function /stream
+async function fetchSentence(){
+  try {
+    const res = await fetch("/stream", { method: "GET" });
+
+    if (!res.ok) throw new Error("Bad response");
+
+    const data = await res.json();
+    let text = (data.sentence || data.text || "").trim();
+
+    // fallback se vuoto
+    if (!text) text = "A monochrome surface contains every color.";
+
+    // assicuriamoci che chiuda con punteggiatura
+    if (!/[.!?…]$/.test(text)) text += ".";
+
+    // spazio iniziale per estetica
+    return " " + text;
+
+  } catch (err) {
+    console.error("API sentence error:", err);
+    // fallback totale
+    return " A monochrome surface contains every color.";
   }
-  let s;
-  do {
-    const poolIndex = Math.floor(Math.random() * sentencePool.length);
-    s = sentencePool.splice(poolIndex, 1)[0];
-  } while (s === currentSentence && SENTENCES.length > 1 && sentencePool.length > 0);
-
-  currentSentence = s;
-  return " " + s; // leading space for aesthetic
 }
 
-/* =============== TEXT LOGIC =============== */
-
-const CHAR_MS=170, SPACE_MS=280, COMMA_MS=520, PERIOD_MS=1000, DASH_MS=650;
-const BOTTOM_ROOM=160;
-const LERP_BASE=0.06, LERP_BOOST=0.10, LAG_THRESHOLD=36;
-
 function delayFor(ch){
-  if(ch===" ") return CHAR_MS+SPACE_MS;
-  if(/[,\u061B;]/.test(ch)) return CHAR_MS+COMMA_MS;
-  if(/[.!?]/.test(ch)) return CHAR_MS+PERIOD_MS;
-  if(/[\u2013\u2014-]/.test(ch)) return CHAR_MS+DASH_MS;
+  if (ch === " ") return CHAR_MS + SPACE_MS;
+  if (/[,\u061B;]/.test(ch)) return CHAR_MS + COMMA_MS;
+  if (/[.!?]/.test(ch)) return CHAR_MS + PERIOD_MS;
+  if (/[\u2013\u2014-]/.test(ch)) return CHAR_MS + DASH_MS;
   return CHAR_MS;
 }
 
@@ -273,15 +234,15 @@ function setupColumn(viewport, line, isSpine, percent, px){
 
   function compute(){
     const contentH = line.scrollHeight;
-    const viewH = viewport.clientHeight;
-    const allowed = viewH - BOTTOM_ROOM;
-    const excess = contentH - allowed;
+    const viewH    = viewport.clientHeight;
+    const allowed  = viewH - BOTTOM_ROOM;
+    const excess   = contentH - allowed;
     targetY = excess > 0 ? -excess : 0;
   }
 
   function apply(){
     const shiftX = `calc(${percent}% + ${px}px)`;
-    if(isSpine){
+    if (isSpine){
       line.style.transform = `translateX(${shiftX}) translateY(${currentY}px)`;
     } else {
       line.style.transform =
@@ -291,9 +252,9 @@ function setupColumn(viewport, line, isSpine, percent, px){
 
   (function anim(){
     requestAnimationFrame(anim);
-    const lag = targetY - currentY;
+    const lag  = targetY - currentY;
     const ease = Math.abs(lag) > LAG_THRESHOLD ? LERP_BOOST : LERP_BASE;
-    currentY += lag * ease;
+    currentY  += lag * ease;
     apply();
   })();
 
@@ -306,8 +267,8 @@ function setupColumn(viewport, line, isSpine, percent, px){
     let i = 0;
 
     function type(){
-      if(i >= chars.length){
-        if(done) done();
+      if (i >= chars.length){
+        if (done) done();
         return;
       }
       const ch = chars[i++];
@@ -340,8 +301,8 @@ function setTextVisible(v){
 
 const VIDEO_SOURCES = Array.from({length:40}, (_,i)=>`videos/${i+1}.mp4`);
 
-// pool of indices 0..39, consumed randomly, then refilled
-let videoPool = VIDEO_SOURCES.map((_,i)=>i);
+// pool di indici 0..39, consumati random, poi refill
+let videoPool      = VIDEO_SOURCES.map((_,i)=>i);
 let lastVideoIndex = -1;
 
 function pickVideoIndex(){
@@ -351,7 +312,7 @@ function pickVideoIndex(){
   let idx, poolIndex;
   do {
     poolIndex = Math.floor(Math.random()*videoPool.length);
-    idx = videoPool[poolIndex];
+    idx       = videoPool[poolIndex];
   } while (idx === lastVideoIndex && VIDEO_SOURCES.length > 1 && videoPool.length > 1);
 
   videoPool.splice(poolIndex, 1);
@@ -366,11 +327,11 @@ function initTriptych(){
 
   const bgs = [left, center, right];
   const videos = bgs.map(bg=>{
-    const v=document.createElement("video");
-    v.muted=true;
-    v.loop=false;
-    v.autoplay=false;
-    v.playsInline=true;
+    const v = document.createElement("video");
+    v.muted = true;
+    v.loop  = false;
+    v.autoplay = false;
+    v.playsInline = true;
     v.setAttribute("playsinline","true");
     v.setAttribute("webkit-playsinline","true");
     bg.appendChild(v);
@@ -385,7 +346,7 @@ function initTriptych(){
     const index = pickVideoIndex();
     const src   = VIDEO_SOURCES[index] + "?v=" + Date.now();
 
-    // assign sources
+    // assegna sorgenti
     videos.forEach(v=>{
       v.onloadeddata = null;
       v.src = src;
@@ -397,7 +358,7 @@ function initTriptych(){
       v.onloadeddata = () => {
         readyCount++;
         if (readyCount === videos.length) {
-          // all three slices ready -> start together
+          // tutte e tre pronte -> play insieme
           setTextVisible(false);
           setVisible(true);
           videos.forEach(v2=>{
@@ -415,7 +376,7 @@ function initTriptych(){
         v.load();
       });
       setVisible(false);
-      if(done) done();
+      if (done) done();
     };
   }
 
@@ -426,33 +387,33 @@ const triptych = initTriptych();
 
 /* =============== ORCHESTRATION =============== */
 
-function startTextPhase(){
+function startVideoPhase(){
+  triptych.playRandom(()=>startTextPhase());
+}
+
+async function startTextPhase(){
   setTextVisible(true);
 
-  const sentence = pickSentence(); // same sentence for all 3 columns
+  const sentence = await fetchSentence(); // stessa frase per tutte e 3
 
   columns[0].playOnce(sentence, ()=>{
     setTimeout(startVideoPhase, 1000);
   });
-
   columns[1].playOnce(sentence);
   columns[2].playOnce(sentence);
-}
-
-function startVideoPhase(){
-  triptych.playRandom(()=>startTextPhase());
 }
 
 startTextPhase();
 
 /* FRAME COLORS */
-const FRAME_COLORS=["#ff5958","#0092a3","#006cda"];
-let idx=0;
+const FRAME_COLORS = ["#ff5958","#0092a3","#006cda"];
+let frameIdx = 0;
 setInterval(()=>{
-  idx=(idx+1)%3;
+  frameIdx = (frameIdx+1)%3;
   document.querySelectorAll('.frame')
-    .forEach(f=>f.style.backgroundColor=FRAME_COLORS[idx]);
-},60000);
+    .forEach(f=>f.style.backgroundColor = FRAME_COLORS[frameIdx]);
+}, 60000);
 </script>
 </body>
 </html>
+
