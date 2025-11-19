@@ -7,6 +7,7 @@ export default async (req: Request) => {
 
   const key = Deno.env.get("OPENAI_API_KEY") || "";
   const org = Deno.env.get("OPENAI_ORG_ID") || ""; // optional
+
   const prompt =
     url.searchParams.get("prompt") ??
     "make a contradictory short sentence composed by two atomic propositions about art and its essence and give me only the sentence";
@@ -31,20 +32,22 @@ export default async (req: Request) => {
   if (org) headers["OpenAI-Organization"] = org;
 
   const systemInstruction =
-    "make a contradictory short sentence composed by two atomic propositions about art and its essence. The atomic proposition must be in Wittgenstein's theory of logical atomism sense, An atomic proposition is a basic, logically independent statement that describes a simple state of affairs, or a configuration of objects. It is the simplest form of a proposition, meaning it is not a truth-function of any other propositions. " +
-    "here are some examples: A monochrome surface contains every color. The sculpture exists only when unseen. " +
-    "This drawing erases itself as it is made. A closed space remains fully accessible. The work changes only when it stays the same. " +
-    "A single point covers the whole wall. The empty frame completes the image. A straight line bends around itself. " +
-    "The title describes what the work is not. The installation expands by being removed. The material is immaterial. " +
-    "The visible part is entirely hidden. This performance occurs without happening. The original is identical to its copy. " +
-    "The text reads what is not written. This object is heavier than itself. The audience completes a work that is already finished. " +
-    "The concept exists without being conceived. Every mark on the page is blank. The frame surrounds nothing and contains everything. " +
-    "This image is smaller than its detail. The negative space occupies more than the object. A permanent work exists only temporarily. " +
-    "The idea is finished when it begins. This space is both empty and full. The work exists only as its documentation. " +
-    "The image is composed entirely of what is missing. The projection illuminates darkness without light. " +
-    "The sequence begins at its conclusion. This surface is both opaque and transparent. The act of looking removes the work from view.";
+    "ake a contradictory short sentence composed by two atomic propositions about art and its essence. The atomic proposition must be in Wittgenstein's theory of logical atomism sense, An atomic proposition is a basic, logically independent statement that describes a simple state of affairs, or a configuration of objects. It is the simplest form of a proposition, meaning it is not a truth-function of any other propositions." +
+    "Here are some examples: " +
+    "A monochrome surface contains every color. " +
+    "The sculpture exists only when unseen. " +
+    "This drawing erases itself as it is made. " +
+    "A closed space remains fully accessible. " +
+    "The work changes only when it stays the same. " +
+    "The empty frame completes the image. " +
+    "A straight line bends around itself. " +
+    "The material is immaterial. " +
+    "The visible part is entirely hidden. " +
+    "The origin is located in the future. " +
+    "Generate only one short sentence.";
 
-  const model = "gpt-4.1"; // puoi usare anche "gpt-4.1-mini" o "gpt-4o-mini"
+  // 🔥 VERSIONE A COSTO RIDOTTISSIMO
+  const model = "gpt-4.1-mini";
 
   let upstream: Response;
   try {
@@ -113,6 +116,7 @@ export default async (req: Request) => {
 };
 
 export const config = { path: "/stream" };
+
 
 
 
