@@ -3,7 +3,7 @@
 
 export default async (req: Request) => {
   const key = Deno.env.get("OPENAI_API_KEY") || "";
-  const assistantId = Deno.env.get("OPENAI_ASSISTANT_ID") || "";
+  const assistantId = Deno.env.get("ASSISTANT_ID") || "";
   const org = Deno.env.get("OPENAI_ORG_ID") || "";
 
   if (!key) {
