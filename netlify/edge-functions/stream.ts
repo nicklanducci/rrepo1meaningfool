@@ -3,8 +3,8 @@
 
 export default async (req: Request) => {
   const key = Deno.env.get("OPENAI_API_KEY") || "";
-  const org = Deno.env.get("OPENAI_ORG_ID") || "";
   const assistantId = Deno.env.get("OPENAI_ASSISTANT_ID") || "";
+  const org = Deno.env.get("OPENAI_ORG_ID") || "";
 
   if (!key) {
     return new Response(JSON.stringify({ error: "Missing OPENAI_API_KEY" }), {
@@ -12,6 +12,7 @@ export default async (req: Request) => {
       headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" },
     });
   }
+
   if (!assistantId) {
     return new Response(JSON.stringify({ error: "Missing OPENAI_ASSISTANT_ID" }), {
       status: 500,
@@ -54,12 +55,12 @@ export default async (req: Request) => {
       assistant_id: assistantId
     })
   });
+
   const runData = await runRes.json();
   const runId = runData.id;
 
-  // 4. Poll until completed
+  // 4. Poll
   let status = runData.status;
-
   while (status === "queued" || status === "in_progress") {
     await new Promise(r => setTimeout(r, 300));
     const pollRes = await fetch(
