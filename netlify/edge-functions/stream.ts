@@ -9,7 +9,7 @@ export default async (req: Request) => {
   const org = Deno.env.get("OPENAI_ORG_ID") || ""; // optional
   const prompt =
     url.searchParams.get("prompt") ??
-    "make a contradictory short sentence composed by two atomic propositions about art and its essence";
+    "make a contradictory short sentence composed by two atomic propositions about art and its essence and give me only the sentence";
 
   if (!key) {
     return new Response(
