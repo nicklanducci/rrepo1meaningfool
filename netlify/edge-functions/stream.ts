@@ -32,12 +32,12 @@ export default async (req: Request) => {
   if (org) headers["OpenAI-Organization"] = org;
 
   const systemInstruction =
-    "ake a contradictory short sentence composed by two atomic propositions about art and its essence. The atomic proposition must be in Wittgenstein's theory of logical atomism sense, An atomic proposition is a basic, logically independent statement that describes a simple state of affairs, or a configuration of objects. It is the simplest form of a proposition, meaning it is not a truth-function of any other propositions." +
+    "ake a contradictory short sentence composed by two atomic propositions about art and its essence." +
     "Here are some examples: " +
     "A monochrome surface contains every color. " +
     "The sculpture exists only when unseen. " +
-    "This drawing erases itself as it is made. " +
-    "A closed space remains fully accessible. " +
+    "The drawing erases itself as it is made. " +
+    "A closed space which remains fully accessible. " +
     "The work changes only when it stays the same. " +
     "The empty frame completes the image. " +
     "A straight line bends around itself. " +
