@@ -50,7 +50,7 @@
       pointer-events:none;
       z-index:1;
       overflow:hidden;
-      visibility:hidden;
+      visibility:hidden; /* hidden during text phase */
     }
 
     .viewport-bg video {
@@ -157,7 +157,7 @@
   <div class="viewport mode-spine" style="left:946px; top:44px; width:275px; height:935px;">
     <div class="viewport-bg video-center"></div>
 
-    <!-- 🔥 NEW GRADIENT OVERLAY -->
+    <!-- GRADIENT OVERLAY -->
     <div class="center-cover"></div>
 
     <div class="inner">
@@ -180,9 +180,78 @@
 </div>
 
 <script>
-/* =============== TEXT LOGIC =============== */
+/* ========== SENTENCE SYSTEM ========== */
 
-const SAMPLE = " The sculpture exists only when unseen.";
+const SENTENCES = [
+  "A monochrome surface contains every color.",
+  "The sculpture exists only when unseen.",
+  "This drawing erases itself as it is made.",
+  "A closed space remains fully accessible.",
+  "The work changes only when it stays the same.",
+  "A single point covers the whole wall.",
+  "The empty frame completes the image.",
+  "This photograph depicts what cannot be photographed.",
+  "A straight line bends around itself.",
+  "The title describes what the work is not.",
+  "The installation expands by being removed.",
+  "The material is immaterial.",
+  "The visible part is entirely hidden.",
+  "This performance occurs without happening.",
+  "The original is identical to its copy.",
+  "The floor is suspended from the ceiling.",
+  "The text reads what is not written.",
+  "This object is heavier than itself.",
+  "The audience completes a work that is already finished.",
+  "The concept exists without being conceived.",
+  "Every mark on the page is blank.",
+  "The frame surrounds nothing and contains everything.",
+  "This wall holds the absence of a wall.",
+  "The map precedes the territory it represents.",
+  "The sound is louder than silence.",
+  "The boundary extends beyond the space it encloses.",
+  "This image is smaller than its detail.",
+  "The negative space occupies more than the object.",
+  "A permanent work exists only temporarily.",
+  "The paper is folded without being bent.",
+  "This video plays without being recorded.",
+  "The shape is defined by what it excludes.",
+  "A fixed position moves continuously.",
+  "The idea is finished when it begins.",
+  "The center lies outside the work.",
+  "This space is both empty and full.",
+  "The label refers to something else.",
+  "The work exists only as its documentation.",
+  "The line has no length but extends infinitely.",
+  "The image is composed entirely of what is missing.",
+  "The projection illuminates darkness without light.",
+  "This floor plan describes a different building.",
+  "The sculpture is made entirely of nothing.",
+  "The performance lasts forever and ends immediately.",
+  "The origin is located in the future.",
+  "The work belongs to everyone and to no one.",
+  "The sequence begins at its conclusion.",
+  "This surface is both opaque and transparent.",
+  "The volume is silent and filled with sound.",
+  "The act of looking removes the work from view."
+];
+
+let sentencePool = [...SENTENCES];
+let currentSentence = "";
+
+function pickSentence() {
+  if (sentencePool.length === 0) {
+    sentencePool = [...SENTENCES];
+  }
+  let s;
+  do {
+    s = sentencePool.splice(Math.floor(Math.random() * sentencePool.length), 1)[0];
+  } while (s === currentSentence && SENTENCES.length > 1);
+
+  currentSentence = s;
+  return " " + s; // leading space for aesthetic
+}
+
+/* =============== TEXT LOGIC =============== */
 
 const CHAR_MS=170, SPACE_MS=280, COMMA_MS=520, PERIOD_MS=1000, DASH_MS=650;
 const BOTTOM_ROOM=160;
@@ -197,72 +266,73 @@ function delayFor(ch){
 }
 
 function setupColumn(viewport, line, isSpine, percent, px){
-  const span=line.querySelector("span");
-  let targetY=0, currentY=0;
-  const chars=[...SAMPLE];
+  const span = line.querySelector("span");
+  let targetY = 0, currentY = 0;
+  let chars = [];
 
   function compute(){
-    const contentH=line.scrollHeight;
-    const viewH=viewport.clientHeight;
-    const allowed=viewH - BOTTOM_ROOM;
-    const excess=contentH - allowed;
-    targetY = excess>0 ? -excess : 0;
+    const contentH = line.scrollHeight;
+    const viewH = viewport.clientHeight;
+    const allowed = viewH - BOTTOM_ROOM;
+    const excess = contentH - allowed;
+    targetY = excess > 0 ? -excess : 0;
   }
 
   function apply(){
-    const shiftX=`calc(${percent}% + ${px}px)`;
+    const shiftX = `calc(${percent}% + ${px}px)`;
     if(isSpine){
-      line.style.transform=`translateX(${shiftX}) translateY(${currentY}px)`;
+      line.style.transform = `translateX(${shiftX}) translateY(${currentY}px)`;
     } else {
-      line.style.transform=
+      line.style.transform =
         `translateX(${shiftX}) rotate(180deg) translateY(${currentY}px)`;
     }
   }
 
   (function anim(){
     requestAnimationFrame(anim);
-    const lag=targetY-currentY;
-    const ease=Math.abs(lag)>LAG_THRESHOLD?LERP_BOOST:LERP_BASE;
+    const lag = targetY - currentY;
+    const ease = Math.abs(lag) > LAG_THRESHOLD ? LERP_BOOST : LERP_BASE;
     currentY += lag * ease;
     apply();
   })();
 
-  function reset(){ targetY=0; currentY=0; apply(); }
+  function reset(){ targetY = 0; currentY = 0; apply(); }
 
-  function playOnce(done){
-    span.textContent="";
+  function playOnce(text, done){
+    chars = [...text];
+    span.textContent = "";
     reset();
-    let i=0;
+    let i = 0;
 
     function type(){
-      if(i>=chars.length){
+      if(i >= chars.length){
         if(done) done();
         return;
       }
-      const ch=chars[i++];
-      span.textContent+=ch;
+      const ch = chars[i++];
+      span.textContent += ch;
       compute();
       setTimeout(type, delayFor(ch));
     }
-    setTimeout(type,600);
+    setTimeout(type, 600);
   }
 
   return { playOnce };
 }
 
 /* INIT COLUMNS */
-const vps=document.querySelectorAll(".viewport");
-const lns=document.querySelectorAll(".line");
+const vps = document.querySelectorAll(".viewport");
+const lns = document.querySelectorAll(".line");
 
-const columns=[
-  setupColumn(vps[0],lns[0],false,-20,25),
-  setupColumn(vps[1],lns[1],true,10,0),
-  setupColumn(vps[2],lns[2],false,25,-55),
+const columns = [
+  setupColumn(vps[0], lns[0], false, -20, 25),
+  setupColumn(vps[1], lns[1], true, 10, 0),
+  setupColumn(vps[2], lns[2], false, 25, -55),
 ];
 
-const inners=document.querySelectorAll(".inner");
+const inners = document.querySelectorAll(".inner");
 function setTextVisible(v){
-  inners.forEach(el=>el.style.opacity=v?1:0);
+  inners.forEach(el => el.style.opacity = v ? 1 : 0);
 }
 
 /* =============== VIDEO LOGIC (1 RANDOM TRIPTYCH VIDEO) =============== */
@@ -270,12 +340,12 @@ function setTextVisible(v){
 const VIDEO_SOURCES = Array.from({length:40}, (_,i)=>`videos/${i+1}.mp4`);
 
 function initTriptych(){
-  const left=document.querySelector('.viewport-bg.video-left');
-  const center=document.querySelector('.viewport-bg.video-center');
-  const right=document.querySelector('.viewport-bg.video-right');
+  const left   = document.querySelector('.viewport-bg.video-left');
+  const center = document.querySelector('.viewport-bg.video-center');
+  const right  = document.querySelector('.viewport-bg.video-right');
 
-  const bgs=[left,center,right];
-  const videos=bgs.map(bg=>{
+  const bgs = [left, center, right];
+  const videos = bgs.map(bg=>{
     const v=document.createElement("video");
     v.muted=true;
     v.loop=false;
@@ -288,12 +358,12 @@ function initTriptych(){
   });
 
   function setVisible(v){
-    bgs.forEach(bg=>bg.style.visibility=v?"visible":"hidden");
+    bgs.forEach(bg=>bg.style.visibility = v ? "visible" : "hidden");
   }
 
   function playRandom(done){
     const index = Math.floor(Math.random()*VIDEO_SOURCES.length);
-    const src = VIDEO_SOURCES[index] + "?v=" + Date.now();
+    const src   = VIDEO_SOURCES[index] + "?v=" + Date.now();
 
     videos.forEach(v=>v.src = src);
 
@@ -302,7 +372,7 @@ function initTriptych(){
       setVisible(true);
 
       videos.forEach(v=>{
-        v.currentTime=0;
+        v.currentTime = 0;
         v.play().catch(()=>{});
       });
     };
@@ -328,12 +398,14 @@ const triptych = initTriptych();
 function startTextPhase(){
   setTextVisible(true);
 
-  columns[0].playOnce(()=>{
-    setTimeout(startVideoPhase,1000);
+  const sentence = pickSentence(); // same sentence for all 3 columns
+
+  columns[0].playOnce(sentence, ()=>{
+    setTimeout(startVideoPhase, 1000);
   });
 
-  columns[1].playOnce();
-  columns[2].playOnce();
+  columns[1].playOnce(sentence);
+  columns[2].playOnce(sentence);
 }
 
 function startVideoPhase(){
@@ -350,8 +422,6 @@ setInterval(()=>{
   document.querySelectorAll('.frame')
     .forEach(f=>f.style.backgroundColor=FRAME_COLORS[idx]);
 },60000);
-
 </script>
 </body>
 </html>
-
