@@ -244,8 +244,9 @@ function pickSentence() {
   }
   let s;
   do {
-    s = sentencePool.splice(Math.floor(Math.random() * sentencePool.length), 1)[0];
-  } while (s === currentSentence && SENTENCES.length > 1);
+    const poolIndex = Math.floor(Math.random() * sentencePool.length);
+    s = sentencePool.splice(poolIndex, 1)[0];
+  } while (s === currentSentence && SENTENCES.length > 1 && sentencePool.length > 0);
 
   currentSentence = s;
   return " " + s; // leading space for aesthetic
@@ -335,9 +336,28 @@ function setTextVisible(v){
   inners.forEach(el => el.style.opacity = v ? 1 : 0);
 }
 
-/* =============== VIDEO LOGIC (1 RANDOM TRIPTYCH VIDEO) =============== */
+/* =============== VIDEO LOGIC (1 RANDOM TRIPTYCH VIDEO, NO REPEAT UNTIL 40 USED) =============== */
 
 const VIDEO_SOURCES = Array.from({length:40}, (_,i)=>`videos/${i+1}.mp4`);
+
+// pool of indices 0..39, consumed randomly, then refilled
+let videoPool = VIDEO_SOURCES.map((_,i)=>i);
+let lastVideoIndex = -1;
+
+function pickVideoIndex(){
+  if (videoPool.length === 0) {
+    videoPool = VIDEO_SOURCES.map((_,i)=>i);
+  }
+  let idx, poolIndex;
+  do {
+    poolIndex = Math.floor(Math.random()*videoPool.length);
+    idx = videoPool[poolIndex];
+  } while (idx === lastVideoIndex && VIDEO_SOURCES.length > 1 && videoPool.length > 1);
+
+  videoPool.splice(poolIndex, 1);
+  lastVideoIndex = idx;
+  return idx;
+}
 
 function initTriptych(){
   const left   = document.querySelector('.viewport-bg.video-left');
@@ -362,22 +382,33 @@ function initTriptych(){
   }
 
   function playRandom(done){
-    const index = Math.floor(Math.random()*VIDEO_SOURCES.length);
+    const index = pickVideoIndex();
     const src   = VIDEO_SOURCES[index] + "?v=" + Date.now();
 
-    videos.forEach(v=>v.src = src);
+    // assign sources
+    videos.forEach(v=>{
+      v.onloadeddata = null;
+      v.src = src;
+    });
 
-    videos[0].onloadedmetadata = ()=>{
-      setTextVisible(false);
-      setVisible(true);
+    let readyCount = 0;
 
-      videos.forEach(v=>{
-        v.currentTime = 0;
-        v.play().catch(()=>{});
-      });
-    };
+    videos.forEach(v=>{
+      v.onloadeddata = () => {
+        readyCount++;
+        if (readyCount === videos.length) {
+          // all three slices ready -> start together
+          setTextVisible(false);
+          setVisible(true);
+          videos.forEach(v2=>{
+            v2.currentTime = 0;
+            v2.play().catch(()=>{});
+          });
+        }
+      };
+    });
 
-    videos[0].onended = ()=>{
+    videos[0].onended = () => {
       videos.forEach(v=>{
         v.pause();
         v.removeAttribute("src");
